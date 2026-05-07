@@ -1,0 +1,14 @@
+{
+  "name": "expense-tracker",
+  "version": "1.0.0",
+  "description": "Ứng dụng quản lý chi tiêu cá nhân với AI tích hợp",
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run mobile\"",
+    "backend": "cd backend && npm start",
+    "mobile": "cd mobile && npx expo start",
+    "install:all": "npm install && cd backend && npm install && cd ../mobile && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

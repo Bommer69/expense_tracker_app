@@ -61,12 +61,24 @@ export const budgetsAPI = {
 // Categories API
 export const categoriesAPI = {
   getAll: (type) => api.get('/categories', { params: { type } }),
+  create: (data) => api.post('/categories', data),
+  remove: (id) => api.delete(`/categories/${id}`),
 };
 
-// AI API
+// AI API (Google Gemini)
 export const aiAPI = {
   getStats: () => api.get('/ai/stats'),
   chat: (message) => api.post('/ai/chat', { message }),
+  getAdvice: () => api.get('/ai/advice'),
+};
+
+// Accounts API
+export const accountsAPI = {
+  getAll: () => api.get('/accounts'),
+  create: (data) => api.post('/accounts', data),
+  update: (id, data) => api.put(`/accounts/${id}`, data),
+  delete: (id) => api.delete(`/accounts/${id}`),
+  getBalance: () => api.get('/accounts/balance'),
 };
 
 export default api;
