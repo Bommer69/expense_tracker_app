@@ -7,7 +7,7 @@ Dự án này là một ứng dụng quản lý tài chính cá nhân toàn di�
   - Framework: Express.js
   - Database: MongoDB (Mongoose)
   - Auth: JWT (JSON Web Tokens)
-  - AI: Ollama (llama3.2) tích hợp qua LangChain
+  - AI: Google Gemini (gemini-flash-latest) API
 - **Mobile**:
   - Framework: React Native (Expo)
   - Navigation: Expo Router (Tab-based)
