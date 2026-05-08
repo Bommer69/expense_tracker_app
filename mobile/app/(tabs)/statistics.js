@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useTransactionSummary, useTransactions } from '../../src/hooks/useTransactions';
-import { formatCurrency, getCurrentMonth } from '../../src/utils/formatters';
+import { useSavingsGoals } from '../../src/hooks/useSavingsGoals';
+import { formatCurrency, formatNumberInput, getCurrentMonth, parseFormattedNumber } from '../../src/utils/formatters';
 import { useState, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 
@@ -14,21 +15,26 @@ export default function StatisticsScreen() {
   const [viewMonth, setViewMonth] = useState(getCurrentMonth());
   const { summary, loading: sL, fetchSummary } = useTransactionSummary();
   const { transactions, loading: tL, fetchTransactions } = useTransactions(200);
+  const { goals, loading: gL, fetchGoals, saveGoal } = useSavingsGoals();
   
   const [refreshing, setRefreshing] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
   const [chartType, setChartType] = useState('expense'); // 'expense' or 'income'
+  const [goalModalVisible, setGoalModalVisible] = useState(false);
+  const [goalAmount, setGoalAmount] = useState('');
+  const [goalNote, setGoalNote] = useState('');
   
-  const loading = sL || tL;
+  const loading = sL || tL || gL;
 
   const loadData = useCallback(async () => {
     const startDate = `${viewMonth}-01`;
     const endDate = new Date(new Date(startDate).setMonth(new Date(startDate).getMonth() + 1)).toISOString().slice(0, 10);
     await Promise.all([
       fetchSummary(viewMonth), 
-      fetchTransactions({ startDate, endDate })
+      fetchTransactions({ startDate, endDate }),
+      fetchGoals(viewMonth)
     ]);
-  }, [viewMonth, fetchSummary, fetchTransactions]);
+  }, [viewMonth, fetchSummary, fetchTransactions, fetchGoals]);
 
   useFocusEffect(
     useCallback(() => {
@@ -57,6 +63,8 @@ export default function StatisticsScreen() {
   const totalIncome = summary.totalIncome || 0;
   const savings = totalIncome - totalExpense;
   const savingsRate = totalIncome > 0 ? ((savings / totalIncome) * 100).toFixed(0) : 0;
+  const activeGoal = goals[0] || null;
+  const goalProgress = activeGoal?.progress;
 
   // Prepare Donut Chart Data based on selected type
   const catDataRaw = Object.entries(summary.byCategory || {}).filter(([_, v]) => v[chartType] > 0);
@@ -78,6 +86,20 @@ export default function StatisticsScreen() {
     else dailyData[d].expense += tx.amount; 
   });
   const maxBar = Math.max(...Object.values(dailyData).map(d => Math.max(d.income, d.expense)), 1);
+
+  const handleSaveGoal = async () => {
+    const parsed = parseFormattedNumber(goalAmount);
+    if (!parsed || parsed <= 0) {
+      Alert.alert('Lỗi', 'Nhập mục tiêu tiết kiệm hợp lệ');
+      return;
+    }
+    try {
+      await saveGoal({ month: viewMonth, targetAmount: parsed, note: goalNote });
+      setGoalModalVisible(false);
+    } catch {
+      Alert.alert('Lỗi', 'Không thể lưu mục tiêu tiết kiệm');
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -125,6 +147,58 @@ export default function StatisticsScreen() {
               <View style={[styles.progressBar, { backgroundColor: theme.border + '50' }]}>
                 <View style={[styles.progressFill, { backgroundColor: savings >= 0 ? theme.success : theme.error, width: `${Math.min(Math.abs(Number(savingsRate)), 100)}%` }]} />
               </View>
+            </View>
+
+            <View style={[styles.goalCard, { backgroundColor: theme.surface, borderColor: theme.border + '60' }]}>
+              <View style={styles.goalHeader}>
+                <Text style={[styles.goalTitle, { color: theme.text }]}>Mục tiêu tiết kiệm</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setGoalAmount(activeGoal?.targetAmount ? formatNumberInput(String(activeGoal.targetAmount)) : '');
+                    setGoalNote(activeGoal?.note || '');
+                    setGoalModalVisible(true);
+                  }}
+                >
+                  <Text style={{ color: theme.primary, fontWeight: '600' }}>
+                    {activeGoal ? 'Chỉnh sửa' : 'Thiết lập'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {!activeGoal ? (
+                <Text style={{ color: theme.textSecondary }}>Chưa có mục tiêu cho tháng này.</Text>
+              ) : (
+                <>
+                  <Text style={{ color: theme.textSecondary, marginBottom: 4 }}>
+                    Mục tiêu: {formatCurrency(goalProgress?.targetAmount || 0)}
+                  </Text>
+                  <Text style={{ color: theme.textSecondary, marginBottom: 10 }}>
+                    Đã tiết kiệm: {formatCurrency(goalProgress?.savedAmount || 0)}
+                  </Text>
+                  <View style={[styles.progressBar, { backgroundColor: theme.border + '50' }]}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          backgroundColor: goalProgress?.status === 'behind' ? theme.warning : theme.success,
+                          width: `${Math.min(Math.max(goalProgress?.progressPercent || 0, 0), 100)}%`
+                        }
+                      ]}
+                    />
+                  </View>
+                  <Text
+                    style={{
+                      marginTop: 8,
+                      color: goalProgress?.status === 'behind' ? theme.warning : theme.textSecondary,
+                      fontSize: 12,
+                      fontWeight: '600'
+                    }}
+                  >
+                    {goalProgress?.status === 'behind'
+                      ? 'Cảnh báo: Bạn đang lệch mục tiêu tiết kiệm tháng này.'
+                      : `Tiến độ: ${goalProgress?.progressPercent || 0}%`}
+                  </Text>
+                </>
+              )}
             </View>
 
             {/* Category Chart Section */}
@@ -212,6 +286,37 @@ export default function StatisticsScreen() {
           { icon: '📉', title: 'Xu hướng ngày', desc: 'Biểu đồ cột đôi (Thu - Xanh lá, Chi - Đỏ) thể hiện cường độ giao dịch của bạn theo từng ngày.' }
         ]}
       />
+
+      <Modal visible={goalModalVisible} transparent animationType="fade" onRequestClose={() => setGoalModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.goalModal, { backgroundColor: theme.background }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Mục tiêu tiết kiệm tháng</Text>
+            <TextInput
+              style={[styles.modalInput, { borderColor: theme.border, color: theme.text }]}
+              placeholder="Số tiền mục tiêu (VND)"
+              placeholderTextColor={theme.textSecondary}
+              keyboardType="numeric"
+              value={goalAmount}
+              onChangeText={(text) => setGoalAmount(formatNumberInput(text))}
+            />
+            <TextInput
+              style={[styles.modalInput, { borderColor: theme.border, color: theme.text }]}
+              placeholder="Ghi chú (tùy chọn)"
+              placeholderTextColor={theme.textSecondary}
+              value={goalNote}
+              onChangeText={setGoalNote}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalBtn, { borderColor: theme.border }]} onPress={() => setGoalModalVisible(false)}>
+                <Text style={{ color: theme.textSecondary }}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={handleSaveGoal}>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>Lưu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -233,6 +338,9 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 13, marginBottom: 4, fontWeight: '500' },
   summaryValue: { fontSize: 18, fontWeight: '700' },
   savingsCard: { padding: 20, borderRadius: 16, marginBottom: 24, borderWidth: 1 },
+  goalCard: { padding: 20, borderRadius: 16, marginBottom: 24, borderWidth: 1 },
+  goalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  goalTitle: { fontSize: 16, fontWeight: '700' },
   savingsTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
   savingsLabel: { fontSize: 13, marginBottom: 4, fontWeight: '500' },
   savingsAmount: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
@@ -267,4 +375,10 @@ const styles = StyleSheet.create({
   legendText: { fontSize: 12, color: '#888' },
   emptyCard: { borderRadius: 16, padding: 30, alignItems: 'center', marginBottom: 24, borderWidth: 1 },
   emptyText: { fontSize: 14, fontWeight: '500' },
+  modalOverlay: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.35)' },
+  goalModal: { borderRadius: 16, padding: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  modalInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  modalBtn: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
 });

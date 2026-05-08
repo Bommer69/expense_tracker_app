@@ -25,8 +25,9 @@ export const useBudgets = () => {
   const createBudget = useCallback(async (data) => {
     setLoading(true);
     try {
-      await budgetsAPI.create(data);
-      await fetchBudgets();
+      const response = await budgetsAPI.create(data);
+      await fetchBudgets(data?.month || getCurrentMonth());
+      return response.data;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -35,18 +36,32 @@ export const useBudgets = () => {
     }
   }, [fetchBudgets]);
 
-  const deleteBudget = useCallback(async (id) => {
+  const updateBudget = useCallback(async (id, data) => {
     setLoading(true);
     try {
-      await budgetsAPI.delete(id);
-      setBudgets(prev => prev.filter(b => b._id !== id));
+      const response = await budgetsAPI.update(id, data);
+      await fetchBudgets(data?.month || getCurrentMonth());
+      return response.data;
     } catch (err) {
       setError(err.message);
       throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchBudgets]);
+
+  const deleteBudget = useCallback(async (id, month = getCurrentMonth()) => {
+    setLoading(true);
+    try {
+      await budgetsAPI.delete(id);
+      await fetchBudgets(month);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchBudgets]);
 
   useEffect(() => {
     fetchBudgets();
@@ -58,6 +73,7 @@ export const useBudgets = () => {
     error,
     fetchBudgets,
     createBudget,
+    updateBudget,
     deleteBudget,
   };
 };

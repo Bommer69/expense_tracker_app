@@ -3,7 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useBudgets } from '../../src/hooks/useBudgets';
 import { useCategories } from '../../src/hooks/useCategories';
-import { formatCurrency, getCurrentMonth } from '../../src/utils/formatters';
+import { formatCurrency, formatNumberInput, getCurrentMonth, parseFormattedNumber } from '../../src/utils/formatters';
 import { useState, useEffect, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
@@ -45,11 +45,12 @@ export default function BudgetScreen() {
   const getStatusColor = (p) => p >= 100 ? theme.error : p >= 80 ? theme.warning : theme.success;
 
   const handleSubmit = async () => {
-    if (!formData.amount || isNaN(parseFloat(formData.amount))) { Alert.alert('Lỗi', 'Nhập số tiền hợp lệ'); return; }
+    const amount = parseFormattedNumber(formData.amount);
+    if (!amount || amount <= 0) { Alert.alert('Lỗi', 'Nhập số tiền hợp lệ'); return; }
     if (!selectedCategory) { Alert.alert('Lỗi', 'Chọn danh mục'); return; }
     setSubmitting(true);
     try {
-      await createBudget({ categoryId: selectedCategory._id, amount: parseFloat(formData.amount), month: formData.month });
+      await createBudget({ categoryId: selectedCategory._id, amount, month: formData.month });
       setModalVisible(false); setFormData({ amount: '', month: getCurrentMonth() }); setSelectedCategory(null);
       setViewMonth(formData.month);
     } catch { Alert.alert('Lỗi', 'Không thể tạo ngân sách'); } finally { setSubmitting(false); }
@@ -86,7 +87,7 @@ export default function BudgetScreen() {
     
     try {
       if (deleteTarget.type === 'budget') {
-        await deleteBudget(deleteTarget.item._id);
+        await deleteBudget(deleteTarget.item._id, viewMonth);
       } else if (deleteTarget.type === 'category') {
         await deleteCategory(deleteTarget.item._id);
         if (selectedCategory?._id === deleteTarget.item._id) setSelectedCategory(null);
@@ -220,7 +221,7 @@ export default function BudgetScreen() {
               {/* Amount */}
               <View style={s.amtRow}>
                 <Text style={[s.amtPrefix, { color: theme.primary }]}>₫</Text>
-                <TextInput style={[s.amtInput, { color: theme.text }]} placeholder="0" placeholderTextColor={theme.textLight || '#ccc'} keyboardType="numeric" value={formData.amount} onChangeText={t => setFormData({ ...formData, amount: t })} />
+                <TextInput style={[s.amtInput, { color: theme.text }]} placeholder="0" placeholderTextColor={theme.textLight || '#ccc'} keyboardType="numeric" value={formData.amount} onChangeText={t => setFormData({ ...formData, amount: formatNumberInput(t) })} />
               </View>
 
               {/* Month Picker */}

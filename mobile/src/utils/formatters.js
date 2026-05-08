@@ -34,3 +34,14 @@ export const getMonthName = (monthStr) => {
   const date = new Date(year, month - 1, 1);
   return date.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' });
 };
+
+export const formatNumberInput = (value) => {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('vi-VN');
+};
+
+export const parseFormattedNumber = (value) => {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  return digits ? Number(digits) : 0;
+};

@@ -6,11 +6,13 @@ const Transaction = require('../models/Transaction');
 const Category = require('../models/Category');
 const { getUserId } = require('../utils/auth');
 const { classifyTransaction } = require('../services/aiClassifier');
+const { generateRecurringTransactions } = require('../services/recurringGenerator');
 
 async function getAll(req, res) {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    await generateRecurringTransactions(userId);
     
     const { startDate, endDate, categoryId, type, limit = 50 } = req.query;
     
@@ -35,6 +37,7 @@ async function create(req, res) {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    await generateRecurringTransactions(userId);
     
     const { amount, description, date, categoryId, type, accountId, tags } = req.body;
     

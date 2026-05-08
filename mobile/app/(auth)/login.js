@@ -66,7 +66,11 @@ export default function LoginScreen() {
       else { await register(email.trim(), password, name.trim()); }
       router.replace('/(tabs)');
     } catch (err) {
-      const msg = err.response?.data?.error || 'Đã xảy ra lỗi. Vui lòng thử lại.';
+      const msg =
+        err?.error ||
+        err?.message ||
+        err?.response?.data?.error ||
+        'Đã xảy ra lỗi. Vui lòng thử lại.';
       Alert.alert('Lỗi', msg);
     } finally { setLoading(false); }
   };

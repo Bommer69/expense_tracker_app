@@ -50,6 +50,19 @@ export const transactionsAPI = {
   getSummary: (month) => api.get('/transactions/summary', { params: { month } }),
 };
 
+export const savingsGoalsAPI = {
+  getAll: (month) => api.get('/savings-goals', { params: month ? { month } : {} }),
+  createOrUpdate: (data) => api.post('/savings-goals', data),
+  delete: (id) => api.delete(`/savings-goals/${id}`),
+};
+
+export const recurringTransactionsAPI = {
+  getAll: () => api.get('/recurring-transactions'),
+  create: (data) => api.post('/recurring-transactions', data),
+  update: (id, data) => api.put(`/recurring-transactions/${id}`, data),
+  delete: (id) => api.delete(`/recurring-transactions/${id}`),
+};
+
 // Budgets API
 export const budgetsAPI = {
   getAll: (month) => api.get('/budgets', { params: { month } }),

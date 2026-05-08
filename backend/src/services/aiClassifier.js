@@ -10,7 +10,7 @@ let model = null;
 
 function getModel() {
   if (!model) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
     if (!apiKey || apiKey === 'your-gemini-api-key-here') {
       return null;
     }

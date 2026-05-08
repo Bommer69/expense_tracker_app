@@ -117,10 +117,16 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.multiRemove([AUTH_KEYS.TOKEN, AUTH_KEYS.USER]);
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
+    try {
+      await AsyncStorage.multiRemove([AUTH_KEYS.TOKEN, AUTH_KEYS.USER]);
+    } catch (err) {
+      console.error('[AuthContext] Logout storage clear error:', err?.message || err);
+    } finally {
+      // Always reset in-memory auth state so user can leave session reliably.
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   }, []);
 
   return (

@@ -85,6 +85,52 @@ async function createOrUpdate(req, res) {
   }
 }
 
+async function update(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { amount, categoryId, month } = req.body;
+    const updates = {};
+
+    if (typeof amount === 'number') updates.amount = amount;
+    if (categoryId) updates.categoryId = categoryId;
+    if (month) updates.month = month;
+
+    const existingBudget = await Budget.findOne({ _id: req.params.id, userId });
+    if (!existingBudget) return res.status(404).json({ error: 'Budget not found' });
+
+    const resolvedCategoryId = updates.categoryId || existingBudget.categoryId;
+    const resolvedMonth = updates.month || existingBudget.month;
+
+    const startDate = new Date(`${resolvedMonth}-01`);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    const transactions = await Transaction.find({
+      userId,
+      categoryId: resolvedCategoryId,
+      type: 'expense',
+      date: { $gte: startDate, $lt: endDate }
+    });
+
+    updates.spent = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+    const budget = await Budget.findOneAndUpdate(
+      { _id: req.params.id, userId },
+      updates,
+      { new: true, runValidators: true }
+    ).populate('categoryId');
+
+    res.json(budget);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'Budget already exists for this category and month' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+}
+
 async function getAlerts(req, res) {
   try {
     const userId = getUserId(req);
@@ -125,4 +171,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getAll, createOrUpdate, getAlerts, remove };
+module.exports = { getAll, createOrUpdate, update, getAlerts, remove };

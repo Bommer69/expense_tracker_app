@@ -8,6 +8,8 @@ const categoryRoutes = require('./routes/categories');
 const budgetRoutes = require('./routes/budgets');
 const aiRoutes = require('./routes/ai');
 const accountRoutes = require('./routes/accounts');
+const savingsGoalRoutes = require('./routes/savingsGoals');
+const recurringTransactionRoutes = require('./routes/recurringTransactions');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +25,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/accounts', accountRoutes);
+app.use('/api/savings-goals', savingsGoalRoutes);
+app.use('/api/recurring-transactions', recurringTransactionRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

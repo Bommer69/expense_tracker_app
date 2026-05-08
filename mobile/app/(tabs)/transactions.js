@@ -3,7 +3,8 @@ import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useCategories } from '../../src/hooks/useCategories';
-import { formatCurrency, formatDateShort } from '../../src/utils/formatters';
+import { useRecurringTransactions } from '../../src/hooks/useRecurringTransactions';
+import { formatCurrency, formatDateShort, formatNumberInput, parseFormattedNumber } from '../../src/utils/formatters';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
@@ -14,12 +15,14 @@ export default function TransactionsScreen() {
   const { theme } = useTheme();
   const { transactions, loading, fetchTransactions, createTransaction, deleteTransaction } = useTransactions(100);
   const { categories, fetchCategories, createCategory, deleteCategory } = useCategories();
+  const { recurrings, fetchRecurrings, createRecurring, removeRecurring } = useRecurringTransactions();
   const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [catModalVisible, setCatModalVisible] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
+  const [recurringModalVisible, setRecurringModalVisible] = useState(false);
   
   // Confirm Modal state
   const [confirmVisible, setConfirmVisible] = useState(false);
@@ -31,12 +34,20 @@ export default function TransactionsScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [newCat, setNewCat] = useState({ name: '', icon: '📦', color: '#6C5CE7' });
+  const [recurringForm, setRecurringForm] = useState({
+    amount: '',
+    description: '',
+    type: 'expense',
+    frequency: 'monthly',
+    categoryId: '',
+  });
 
   // Refresh data when screen focuses
   useFocusEffect(
     useCallback(() => {
       fetchCategories();
       fetchTransactions();
+      fetchRecurrings();
     }, [])
   );
 
@@ -55,11 +66,12 @@ export default function TransactionsScreen() {
   }, [filtered]);
 
   const handleSubmit = async () => {
-    if (!formData.amount || isNaN(parseFloat(formData.amount))) { Alert.alert('Lỗi', 'Nhập số tiền hợp lệ'); return; }
+    const amount = parseFormattedNumber(formData.amount);
+    if (!amount || amount <= 0) { Alert.alert('Lỗi', 'Nhập số tiền hợp lệ'); return; }
     if (!selectedCategory) { Alert.alert('Lỗi', 'Chọn danh mục'); return; }
     setSubmitting(true);
     try {
-      await createTransaction({ amount: parseFloat(formData.amount), description: formData.description, type: formData.type, categoryId: selectedCategory._id, date: selectedDate.toISOString() });
+      await createTransaction({ amount, description: formData.description, type: formData.type, categoryId: selectedCategory._id, date: selectedDate.toISOString() });
       setModalVisible(false); setFormData({ amount: '', description: '', type: 'expense' }); setSelectedCategory(null); setSelectedDate(new Date());
     } catch { Alert.alert('Lỗi', 'Không thể tạo giao dịch'); } finally { setSubmitting(false); }
   };
@@ -109,6 +121,42 @@ export default function TransactionsScreen() {
   };
 
   const filteredCats = categories.filter(c => c.type === formData.type);
+  const recurringCats = categories.filter(c => c.type === recurringForm.type);
+
+  const handleCreateRecurring = async () => {
+    const amount = parseFormattedNumber(recurringForm.amount);
+    if (!amount || amount <= 0) {
+      Alert.alert('Lỗi', 'Nhập số tiền định kỳ hợp lệ');
+      return;
+    }
+    if (!recurringForm.categoryId) {
+      Alert.alert('Lỗi', 'Chọn danh mục cho giao dịch định kỳ');
+      return;
+    }
+    try {
+      await createRecurring({
+        amount,
+        description: recurringForm.description,
+        type: recurringForm.type,
+        frequency: recurringForm.frequency,
+        categoryId: recurringForm.categoryId,
+        startDate: new Date().toISOString()
+      });
+      setRecurringForm({ amount: '', description: '', type: 'expense', frequency: 'monthly', categoryId: '' });
+      await fetchTransactions();
+    } catch {
+      Alert.alert('Lỗi', 'Không thể tạo giao dịch định kỳ');
+    }
+  };
+
+  const handleDeleteRecurring = async (item) => {
+    try {
+      await removeRecurring(item._id);
+      await fetchTransactions();
+    } catch {
+      Alert.alert('Lỗi', 'Không thể xóa giao dịch định kỳ');
+    }
+  };
 
   // Simple date helpers
   const adjustDate = (days) => { const d = new Date(selectedDate); d.setDate(d.getDate() + days); setSelectedDate(d); };
@@ -154,9 +202,14 @@ export default function TransactionsScreen() {
       <View style={[s.header, { borderBottomColor: theme.border + '40' }]}>  
         <View style={s.headerTop}>
           <Text style={[s.headerTitle, { color: theme.text }]}>Giao dịch</Text>
-          <TouchableOpacity onPress={() => setGuideVisible(true)} style={s.infoBtn}>
-            <Text style={{ fontSize: 22 }}>ℹ️</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <TouchableOpacity onPress={() => setRecurringModalVisible(true)} style={s.infoBtn}>
+              <Text style={{ fontSize: 20 }}>🔁</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setGuideVisible(true)} style={s.infoBtn}>
+              <Text style={{ fontSize: 22 }}>ℹ️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={s.summaryRow}>
           <View style={s.summaryItem}>
@@ -220,7 +273,7 @@ export default function TransactionsScreen() {
               {/* Amount */}
               <View style={s.amtRow}>
                 <Text style={[s.amtPrefix, { color: theme.primary }]}>₫</Text>
-                <TextInput style={[s.amtInput, { color: theme.text }]} placeholder="0" placeholderTextColor={theme.textLight || '#ccc'} keyboardType="numeric" value={formData.amount} onChangeText={t => setFormData({ ...formData, amount: t })} />
+                <TextInput style={[s.amtInput, { color: theme.text }]} placeholder="0" placeholderTextColor={theme.textLight || '#ccc'} keyboardType="numeric" value={formData.amount} onChangeText={t => setFormData({ ...formData, amount: formatNumberInput(t) })} />
               </View>
 
               {/* Description */}
@@ -334,6 +387,91 @@ export default function TransactionsScreen() {
         onConfirm={executeDelete}
         onCancel={() => { setConfirmVisible(false); setDeleteTarget(null); }}
       />
+
+      <Modal visible={recurringModalVisible} animationType="slide" transparent onRequestClose={() => setRecurringModalVisible(false)}>
+        <View style={s.overlay}>
+          <View style={[s.modal, { backgroundColor: theme.background, maxHeight: '92%' }]}>
+            <View style={s.handle} />
+            <View style={s.modalHead}>
+              <Text style={[s.modalTitle, { color: theme.text }]}>Giao dịch định kỳ</Text>
+              <TouchableOpacity onPress={() => setRecurringModalVisible(false)}>
+                <Text style={{ fontSize: 20, color: theme.textSecondary }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={[s.sectionLabel, { color: theme.textSecondary }]}>Tạo mới</Text>
+              <View style={[s.typeRow, { backgroundColor: theme.surface }]}>
+                <TouchableOpacity style={[s.typeBtn, recurringForm.type === 'expense' && { backgroundColor: theme.error }]} onPress={() => setRecurringForm(prev => ({ ...prev, type: 'expense', categoryId: '' }))}>
+                  <Text style={[s.typeText, recurringForm.type === 'expense' && { color: '#fff' }]}>Chi tiêu</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.typeBtn, recurringForm.type === 'income' && { backgroundColor: theme.success }]} onPress={() => setRecurringForm(prev => ({ ...prev, type: 'income', categoryId: '' }))}>
+                  <Text style={[s.typeText, recurringForm.type === 'income' && { color: '#fff' }]}>Thu nhập</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={[s.descInput, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border + '60' }]}
+                placeholder="Số tiền"
+                placeholderTextColor={theme.textSecondary}
+                keyboardType="numeric"
+                value={recurringForm.amount}
+                onChangeText={(t) => setRecurringForm(prev => ({ ...prev, amount: formatNumberInput(t) }))}
+              />
+              <TextInput
+                style={[s.descInput, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border + '60' }]}
+                placeholder="Mô tả (VD: Tiền nhà, Lương)"
+                placeholderTextColor={theme.textSecondary}
+                value={recurringForm.description}
+                onChangeText={(t) => setRecurringForm(prev => ({ ...prev, description: t }))}
+              />
+              <View style={s.filterRow}>
+                {[{ k: 'daily', l: 'Hàng ngày' }, { k: 'weekly', l: 'Hàng tuần' }, { k: 'monthly', l: 'Hàng tháng' }].map(f => (
+                  <TouchableOpacity key={f.k} style={[s.filterBtn, { borderColor: theme.border }, recurringForm.frequency === f.k && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setRecurringForm(prev => ({ ...prev, frequency: f.k }))}>
+                    <Text style={[s.filterText, { color: theme.textSecondary }, recurringForm.frequency === f.k && { color: '#fff' }]}>{f.l}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={s.catGrid}>
+                {recurringCats.map(cat => (
+                  <TouchableOpacity
+                    key={cat._id}
+                    style={[s.catChip, { backgroundColor: theme.surface, borderColor: theme.border + '60' }, recurringForm.categoryId === cat._id && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}
+                    onPress={() => setRecurringForm(prev => ({ ...prev, categoryId: cat._id }))}
+                  >
+                    <Text style={{ fontSize: 16 }}>{cat.icon}</Text>
+                    <Text style={[s.catName, { color: theme.text }]}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity style={[s.submitBtn, { backgroundColor: theme.primary }]} onPress={handleCreateRecurring}>
+                <Text style={s.submitText}>Lưu giao dịch định kỳ</Text>
+              </TouchableOpacity>
+
+              <Text style={[s.sectionLabel, { color: theme.textSecondary, marginTop: 20 }]}>Danh sách hiện tại</Text>
+              {recurrings.length === 0 ? (
+                <Text style={{ color: theme.textSecondary }}>Chưa có giao dịch định kỳ.</Text>
+              ) : recurrings.map((r) => (
+                <View key={r._id} style={[s.txItem, { borderBottomColor: theme.border + '60' }]}>
+                  <View style={s.txMid}>
+                    <Text style={[s.txDesc, { color: theme.text }]}>{r.description || r.categoryId?.name || 'Giao dịch định kỳ'}</Text>
+                    <Text style={[s.txDate, { color: theme.textSecondary }]}>
+                      {r.frequency === 'daily' ? 'Hàng ngày' : r.frequency === 'weekly' ? 'Hàng tuần' : 'Hàng tháng'} · {r.categoryId?.name || 'Danh mục'}
+                    </Text>
+                  </View>
+                  <View style={s.txRight}>
+                    <Text style={[s.txAmt, { color: r.type === 'income' ? theme.success : theme.error }]}>
+                      {r.type === 'income' ? '+' : '-'}{formatCurrency(r.amount)}
+                    </Text>
+                    <TouchableOpacity style={s.deleteBtn} onPress={() => handleDeleteRecurring(r)}>
+                      <Text style={{ fontSize: 16, opacity: 0.6 }}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

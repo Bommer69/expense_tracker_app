@@ -90,10 +90,17 @@ async function chat(req, res) {
       answer = await chatWithAI(message, context.text);
     } catch (err) {
       console.error('AI chat error:', err.message);
+      const errorText = String(err.message || '');
       
       // Smart fallback based on user data
-      if (err.message.includes('GEMINI_API_KEY')) {
+      if (errorText.includes('GEMINI_API_KEY')) {
         answer = '⚠️ Chưa cấu hình API Key cho AI. Vui lòng thêm GEMINI_API_KEY vào file .env.\n\nLấy API key miễn phí tại: https://aistudio.google.com/apikey';
+      } else if (
+        errorText.includes('API_KEY_INVALID') ||
+        errorText.includes('API Key not found') ||
+        errorText.includes('reported as leaked')
+      ) {
+        answer = '⚠️ API key Gemini không hợp lệ hoặc đã bị thu hồi do lộ key.\n\nVui lòng tạo key mới tại https://aistudio.google.com/apikey, cập nhật GEMINI_API_KEY trong backend/.env và khởi động lại backend.';
       } else {
         answer = `🤖 Xin lỗi, AI tạm thời không khả dụng.\n\n📊 Tóm tắt nhanh tháng này:\n- Thu nhập: ${context.stats.totalIncome.toLocaleString()} VND\n- Chi tiêu: ${context.stats.totalExpense.toLocaleString()} VND\n- Số giao dịch: ${context.stats.transactionCount}`;
       }

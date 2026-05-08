@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -23,15 +23,25 @@ export default function ProfileScreen() {
   const initials = (user?.name || 'U').charAt(0).toUpperCase();
 
   const handleLogout = () => {
+    const performLogout = async () => {
+      await logout();
+      router.replace('/(auth)/login');
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Bạn có chắc muốn đăng xuất?');
+      if (confirmed) {
+        performLogout();
+      }
+      return;
+    }
+
     Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
       { text: 'Hủy', style: 'cancel' },
       {
         text: 'Đăng xuất',
         style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/(auth)/login');
-        },
+        onPress: performLogout,
       },
     ]);
   };

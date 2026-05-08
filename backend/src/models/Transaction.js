@@ -12,11 +12,14 @@ const transactionSchema = new mongoose.Schema({
   tags: [String],
   attachments: [String],
   aiConfidence: Number,
-  aiCategory: String
+  aiCategory: String,
+  recurringTransactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'RecurringTransaction' },
+  recurringKey: { type: String }
 }, { timestamps: true });
 
 // Index for query performance
 transactionSchema.index({ userId: 1, date: -1 });
 transactionSchema.index({ userId: 1, categoryId: 1 });
+transactionSchema.index({ userId: 1, recurringKey: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Transaction', transactionSchema);
