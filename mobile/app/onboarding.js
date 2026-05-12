@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, FlatList, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -10,19 +11,19 @@ const slides = [
     key: '1',
     title: 'Chào mừng!',
     description: 'Quản lý chi tiêu thông minh với AI',
-    icon: '💰',
+    iconName: 'wallet',
   },
   {
     key: '2',
     title: 'Theo dõi chi tiêu',
     description: 'Thêm giao dịch nhanh chóng, tự động phân loại với AI',
-    icon: '📊',
+    iconName: 'bar-chart',
   },
   {
     key: '3',
     title: 'Tiết kiệm thông minh',
     description: 'Đặt ngân sách, theo dõi mục tiêu tiết kiệm',
-    icon: '🎯',
+    iconName: 'target',
   },
 ];
 
@@ -63,7 +64,9 @@ export default function OnboardingScreen() {
       <Animated.View
         style={[styles.slide, { opacity, transform: [{ scale }] }]}
       >
-        <Text style={styles.icon}>{item.icon}</Text>
+        <View style={styles.iconContainer}>
+          <Ionicons name={item.iconName} size={80} color="#6C5CE7" />
+        </View>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.description}>{item.description}</Text>
       </Animated.View>
@@ -165,8 +168,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     paddingTop: 60,
   },
-  icon: {
-    fontSize: 80,
+  iconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#6C5CE720',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 30,
   },
   title: {

@@ -7,6 +7,7 @@ import { formatCurrency, getMonthName, getCurrentMonth } from '../../src/utils/f
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../src/hooks/useAuth';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -44,7 +45,7 @@ export default function HomeScreen() {
             <Text style={[styles.userName, { color: theme.text }]}>{user?.name || 'Bạn'}</Text>
           </View>
           <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
-            <Text style={{ fontSize: 22 }}>ℹ️</Text>
+            <Ionicons name="book-outline" size={24} color="#6B7194" />
           </TouchableOpacity>
         </View>
       </View>
@@ -79,13 +80,13 @@ export default function HomeScreen() {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           {[
-            { icon: '💸', label: 'Chi tiêu', route: '/transactions' },
-            { icon: '💰', label: 'Thu nhập', route: '/transactions' },
-            { icon: '🤖', label: 'AI Chat', route: '/ai-chat' },
-            { icon: '🎯', label: 'Ngân sách', route: '/budget' },
+            { iconName: 'card-outline', label: 'Chi tiêu', route: '/transactions' },
+            { iconName: 'wallet-outline', label: 'Thu nhập', route: '/transactions' },
+            { iconName: 'chatbubbles', label: 'AI Chat', route: '/ai-chat' },
+            { iconName: 'pie-chart-outline', label: 'Ngân sách', route: '/budget' },
           ].map((item, i) => (
             <TouchableOpacity key={i} style={[styles.quickBtn, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]} onPress={() => router.push(item.route)}>
-              <Text style={styles.quickIcon}>{item.icon}</Text>
+              <Ionicons name={item.iconName} size={20} color={theme.primary} style={styles.quickIcon} />
               <Text style={[styles.quickLabel, { color: theme.text }]}>{item.label}</Text>
             </TouchableOpacity>
           ))}
@@ -127,7 +128,7 @@ export default function HomeScreen() {
           {accounts.map(acc => (
             <View key={acc._id} style={[styles.accountCard, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]}>
               <View style={styles.accTop}>
-                <Text style={styles.accIcon}>{acc.type === 'cash' ? '💵' : acc.type === 'bank' ? '🏦' : '📱'}</Text>
+                <Ionicons name={acc.type === 'cash' ? 'cash-outline' : acc.type === 'bank' ? 'business-outline' : 'phone-portrait-outline'} size={20} color={theme.primary} />
                 <Text style={[styles.accName, { color: theme.textSecondary }]}>{acc.name}</Text>
               </View>
               <Text style={[styles.accBalance, { color: theme.text }]}>{formatCurrency(acc.balance || 0)}</Text>
@@ -143,9 +144,9 @@ export default function HomeScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn Tổng quan"
         guideItems={[
-          { icon: '💎', title: 'Số dư tổng', desc: 'Hiển thị tổng tài sản hiện tại của bạn trong tất cả các tài khoản.' },
-          { icon: '⚡', title: 'Phím tắt', desc: 'Truy cập nhanh vào chức năng thêm thu/chi, trò chuyện với AI, và ngân sách.' },
-          { icon: '📝', title: 'Gần đây', desc: 'Danh sách 5 giao dịch mới nhất bạn vừa thực hiện.' }
+          { iconName: 'wallet', title: 'Số dư tổng', desc: 'Hiển thị tổng tài sản hiện tại của bạn trong tất cả các tài khoản.' },
+          { iconName: 'flash', title: 'Phím tắt', desc: 'Truy cập nhanh vào chức năng thêm thu/chi, trò chuyện với AI, và ngân sách.' },
+          { iconName: 'document-text', title: 'Gần đây', desc: 'Danh sách 5 giao dịch mới nhất bạn vừa thực hiện.' }
         ]}
       />
     </View>
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   balanceMiniAmount: { fontSize: 15, fontWeight: '700' },
   quickActions: { flexDirection: 'row', paddingHorizontal: 20, gap: 10, marginBottom: 10 },
   quickBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 16, borderWidth: 1 },
-  quickIcon: { fontSize: 22, marginBottom: 8 },
+  quickIcon: { marginBottom: 8 },
   quickLabel: { fontSize: 12, fontWeight: '600' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginTop: 24, marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '700' },

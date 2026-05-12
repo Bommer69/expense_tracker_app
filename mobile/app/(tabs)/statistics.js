@@ -6,6 +6,7 @@ import { useSavingsGoals } from '../../src/hooks/useSavingsGoals';
 import { formatCurrency, formatNumberInput, getCurrentMonth, parseFormattedNumber } from '../../src/utils/formatters';
 import { useState, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
+import { Ionicons } from '@expo/vector-icons';
 
 const COLORS = ['#6C5CE7', '#00B894', '#FF6B6B', '#FDCB6E', '#00CECE', '#E17055', '#A29BFE', '#55EFC4', '#FF9FF3', '#54A0FF'];
 const MONTHS_VI = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
@@ -108,13 +109,13 @@ export default function StatisticsScreen() {
         <View style={styles.headerTop}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Thống kê</Text>
           <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
-            <Text style={{ fontSize: 22 }}>ℹ️</Text>
+            <Ionicons name="book-outline" size={22} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
         <View style={styles.monthNav}>
-          <TouchableOpacity onPress={() => navigateMonth(-1)} style={styles.monthArrow}><Text style={{ color: theme.primary, fontSize: 20 }}>‹</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigateMonth(-1)} style={styles.monthArrow}><Ionicons name="chevron-back" size={20} color={theme.primary} /></TouchableOpacity>
           <Text style={[styles.monthText, { color: theme.text }]}>{formatMonth(viewMonth)}</Text>
-          <TouchableOpacity onPress={() => navigateMonth(1)} style={styles.monthArrow}><Text style={{ color: theme.primary, fontSize: 20 }}>›</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigateMonth(1)} style={styles.monthArrow}><Ionicons name="chevron-forward" size={20} color={theme.primary} /></TouchableOpacity>
         </View>
       </View>
 
@@ -125,12 +126,12 @@ export default function StatisticsScreen() {
             {/* Overview Summary */}
             <View style={styles.summaryRow}>
               <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]}>
-                <View style={[styles.iconBg, { backgroundColor: theme.success + '15' }]}><Text style={styles.summaryIcon}>📈</Text></View>
+                <View style={[styles.iconBg, { backgroundColor: theme.success + '15' }]}><Ionicons name="add-circle-outline" size={20} color={theme.success} /></View>
                 <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Thu nhập</Text>
                 <Text style={[styles.summaryValue, { color: theme.success }]}>{formatCurrency(totalIncome)}</Text>
               </View>
               <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]}>
-                <View style={[styles.iconBg, { backgroundColor: theme.error + '15' }]}><Text style={styles.summaryIcon}>📉</Text></View>
+                <View style={[styles.iconBg, { backgroundColor: theme.error + '15' }]}><Ionicons name="remove-circle-outline" size={20} color={theme.error} /></View>
                 <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Chi tiêu</Text>
                 <Text style={[styles.summaryValue, { color: theme.error }]}>{formatCurrency(totalExpense)}</Text>
               </View>
@@ -280,10 +281,10 @@ export default function StatisticsScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn Thống kê"
         guideItems={[
-          { icon: '📅', title: 'Bộ chọn tháng', desc: 'Dùng dấu mũi tên cạnh tên tháng để lùi/tiến xem thống kê của các tháng khác.' },
-          { icon: '📊', title: 'Tổng quan & Tiết kiệm', desc: 'So sánh mức Thu và Chi, đồng thời cho biết bạn đã tiết kiệm được bao nhiêu phần trăm thu nhập.' },
-          { icon: '🍩', title: 'Phân tích danh mục', desc: 'Sử dụng công tắc Thu/Chi để xem phân bố tài chính. Thanh ngang hiển thị tỷ lệ tiền dùng cho từng danh mục.' },
-          { icon: '📉', title: 'Xu hướng ngày', desc: 'Biểu đồ cột đôi (Thu - Xanh lá, Chi - Đỏ) thể hiện cường độ giao dịch của bạn theo từng ngày.' }
+          { iconName: 'calendar-outline', title: 'Bộ chọn tháng', desc: 'Dùng dấu mũi tên cạnh tên tháng để lùi/tiến xem thống kê của các tháng khác.' },
+          { iconName: 'bar-chart-outline', title: 'Tổng quan & Tiết kiệm', desc: 'So sánh mức Thu và Chi, đồng thời cho biết bạn đã tiết kiệm được bao nhiêu phần trăm thu nhập.' },
+          { iconName: 'pie-chart-outline', title: 'Phân tích danh mục', desc: 'Sử dụng công tắc Thu/Chi để xem phân bố tài chính. Thanh ngang hiển thị tỷ lệ tiền dùng cho từng danh mục.' },
+          { iconName: 'stats-chart-outline', title: 'Xu hướng ngày', desc: 'Biểu đồ cột đôi (Thu - Xanh lá, Chi - Đỏ) thể hiện cường độ giao dịch của bạn theo từng ngày.' }
         ]}
       />
 

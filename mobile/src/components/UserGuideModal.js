@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import { Ionicons } from '@expo/vector-icons';
 
 export const UserGuideModal = ({ visible, onClose, title, guideItems }) => {
   const { theme } = useTheme();
@@ -12,13 +13,15 @@ export const UserGuideModal = ({ visible, onClose, title, guideItems }) => {
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={{ color: theme.textSecondary, fontSize: 24 }}>✕</Text>
+              <Ionicons name="close" size={24} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
             {guideItems.map((item, index) => (
               <View key={index} style={styles.itemRow}>
-                <Text style={styles.itemIcon}>{item.icon}</Text>
+                <View style={styles.itemIcon}>
+                  <Ionicons name={item.iconName || 'ellipse'} size={24} color={theme.primary} />
+                </View>
                 <View style={styles.itemTextWrap}>
                   <Text style={[styles.itemTitle, { color: theme.text }]}>{item.title}</Text>
                   <Text style={[styles.itemDesc, { color: theme.textSecondary }]}>{item.desc}</Text>
@@ -43,7 +46,7 @@ const styles = StyleSheet.create({
   closeBtn: { padding: 4 },
   scroll: { paddingBottom: 10 },
   itemRow: { flexDirection: 'row', marginBottom: 20, alignItems: 'flex-start' },
-  itemIcon: { fontSize: 28, marginRight: 16, marginTop: -2 },
+  itemIcon: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   itemTextWrap: { flex: 1 },
   itemTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
   itemDesc: { fontSize: 14, lineHeight: 20 },

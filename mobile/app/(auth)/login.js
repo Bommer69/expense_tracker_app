@@ -7,6 +7,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -92,7 +93,9 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ scale: logoScale }] }]}>
-            <Text style={styles.logoEmoji}>💰</Text>
+            <View style={styles.logoContainer}>
+              <Ionicons name="wallet" size={56} color="#6C5CE7" />
+            </View>
             <Text style={styles.appName}>Expense Tracker</Text>
             <Text style={styles.tagline}>{isLogin ? 'Chào mừng bạn quay trở lại!' : 'Tạo tài khoản miễn phí'}</Text>
           </Animated.View>
@@ -111,7 +114,7 @@ export default function LoginScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Họ tên</Text>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>👤</Text>
+                  <Ionicons name="person-outline" size={20} color="#A0A5C0" style={styles.inputIcon} />
                   <TextInput style={styles.input} placeholder="Nguyễn Văn A" value={name} onChangeText={setName} placeholderTextColor="#A0A5C0" autoCapitalize="words" />
                 </View>
               </View>
@@ -120,7 +123,7 @@ export default function LoginScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email</Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>📧</Text>
+                <Ionicons name="mail-outline" size={20} color="#A0A5C0" style={styles.inputIcon} />
                 <TextInput style={styles.input} placeholder="example@gmail.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#A0A5C0" />
               </View>
             </View>
@@ -128,10 +131,10 @@ export default function LoginScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Mật khẩu</Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>🔒</Text>
+                <Ionicons name="lock-closed-outline" size={20} color="#A0A5C0" style={styles.inputIcon} />
                 <TextInput style={[styles.input, { flex: 1 }]} placeholder="Tối thiểu 6 ký tự" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} placeholderTextColor="#A0A5C0" />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '🔐'}</Text>
+                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#A0A5C0" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -140,14 +143,14 @@ export default function LoginScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Xác nhận mật khẩu</Text>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+                  <Ionicons name="lock-closed-outline" size={20} color="#A0A5C0" style={styles.inputIcon} />
                   <TextInput style={styles.input} placeholder="Nhập lại mật khẩu" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showPassword} placeholderTextColor="#A0A5C0" />
                 </View>
               </View>
             )}
 
             <TouchableOpacity style={[styles.submitBtn, loading && styles.submitBtnDisabled]} onPress={handleSubmit} disabled={loading} activeOpacity={0.8}>
-              <Text style={styles.submitBtnText}>{loading ? '⏳ Đang xử lý...' : (isLogin ? 'Đăng nhập' : 'Tạo tài khoản')}</Text>
+              <Text style={styles.submitBtnText}>{loading ? 'Đang xử lý...' : (isLogin ? 'Đăng nhập' : 'Tạo tài khoản')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.switchContainer} onPress={() => { setIsLogin(!isLogin); setConfirmPassword(''); }}>
@@ -167,9 +170,9 @@ function OnboardingInline({ onFinish }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slides = [
-    { icon: '💰', title: 'Chào mừng!', desc: 'Quản lý chi tiêu thông minh với AI tích hợp' },
-    { icon: '📊', title: 'Theo dõi chi tiêu', desc: 'Thêm giao dịch nhanh chóng, tự động phân loại' },
-    { icon: '🎯', title: 'Tiết kiệm thông minh', desc: 'Đặt ngân sách, theo dõi mục tiêu' },
+    { iconName: 'wallet', title: 'Chào mừng!', desc: 'Quản lý chi tiêu thông minh với AI tích hợp' },
+    { iconName: 'bar-chart', title: 'Theo dõi chi tiêu', desc: 'Thêm giao dịch nhanh chóng, tự động phân loại' },
+    { iconName: 'target', title: 'Tiết kiệm thông minh', desc: 'Đặt ngân sách, theo dõi mục tiêu' },
   ];
 
   const handleNext = () => {
@@ -188,7 +191,9 @@ function OnboardingInline({ onFinish }) {
       <View style={obStyles.bgCircle1} />
       <TouchableOpacity style={obStyles.skipBtn} onPress={onFinish}><Text style={obStyles.skipText}>Bỏ qua</Text></TouchableOpacity>
       <Animated.View style={[obStyles.content, { opacity: fadeAnim }]}>
-        <View style={obStyles.iconCircle}><Text style={obStyles.icon}>{slide.icon}</Text></View>
+        <View style={obStyles.iconCircle}>
+          <Ionicons name={slide.iconName} size={64} color="#6C5CE7" />
+        </View>
         <Text style={obStyles.title}>{slide.title}</Text>
         <Text style={obStyles.desc}>{slide.desc}</Text>
       </Animated.View>
@@ -211,7 +216,6 @@ const obStyles = StyleSheet.create({
   skipText: { fontSize: 16, color: '#6B7194', fontWeight: '500' },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   iconCircle: { width: 140, height: 140, borderRadius: 70, backgroundColor: '#6C5CE720', justifyContent: 'center', alignItems: 'center', marginBottom: 32 },
-  icon: { fontSize: 64 },
   title: { fontSize: 32, fontWeight: '800', color: '#1A1D2E', marginBottom: 16, textAlign: 'center' },
   desc: { fontSize: 17, color: '#6B7194', textAlign: 'center', lineHeight: 26 },
   footer: { paddingHorizontal: 24, paddingBottom: 50 },
@@ -230,7 +234,7 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40 },
   header: { alignItems: 'center', marginBottom: 36 },
-  logoEmoji: { fontSize: 72, textAlign: 'center', marginBottom: 20 },
+  logoContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#6C5CE720', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   appName: { fontSize: 32, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5, marginBottom: 8 },
   tagline: { fontSize: 16, color: '#A0A5C0', textAlign: 'center', lineHeight: 24 },
   formCard: { backgroundColor: '#FFFFFF10', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: '#FFFFFF15', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 24, elevation: 10 },
@@ -242,10 +246,9 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 18 },
   label: { fontSize: 13, fontWeight: '600', color: '#FFFFFFCC', marginBottom: 8, marginLeft: 4, letterSpacing: 0.5, textTransform: 'uppercase' },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF12', borderRadius: 14, borderWidth: 1, borderColor: '#FFFFFF18', paddingHorizontal: 16 },
-  inputIcon: { fontSize: 18, marginRight: 12 },
+  inputIcon: { marginRight: 12 },
   input: { flex: 1, paddingVertical: 16, fontSize: 16, color: '#FFFFFF' },
   eyeBtn: { padding: 8 },
-  eyeIcon: { fontSize: 18 },
   submitBtn: { backgroundColor: '#6C5CE7', paddingVertical: 18, borderRadius: 16, alignItems: 'center', marginTop: 8, shadowColor: '#6C5CE7', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
   submitBtnDisabled: { backgroundColor: '#6C5CE780', shadowOpacity: 0.1 },
   submitBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', letterSpacing: 0.5 },

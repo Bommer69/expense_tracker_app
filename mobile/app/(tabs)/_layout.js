@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
-import { Text, StyleSheet, View, Platform } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const { theme } = useTheme();
@@ -36,7 +37,7 @@ export default function TabLayout() {
           title: 'Trang chủ',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && { backgroundColor: color + '18' }]}>
-              <Text style={[styles.icon, { color }]}>🏠</Text>
+              <Ionicons name="home" size={20} color={color} />
             </View>
           ),
         }}
@@ -47,7 +48,7 @@ export default function TabLayout() {
           title: 'Giao dịch',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && { backgroundColor: color + '18' }]}>
-              <Text style={[styles.icon, { color }]}>💳</Text>
+              <Ionicons name="wallet" size={20} color={color} />
             </View>
           ),
         }}
@@ -58,7 +59,7 @@ export default function TabLayout() {
           title: 'AI Chat',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && { backgroundColor: color + '18' }]}>
-              <Text style={[styles.icon, { color }]}>🤖</Text>
+              <Ionicons name="chatbubbles" size={20} color={color} />
             </View>
           ),
         }}
@@ -69,7 +70,7 @@ export default function TabLayout() {
           title: 'Thống kê',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && { backgroundColor: color + '18' }]}>
-              <Text style={[styles.icon, { color }]}>📊</Text>
+              <Ionicons name="stats-chart" size={20} color={color} />
             </View>
           ),
         }}
@@ -80,7 +81,7 @@ export default function TabLayout() {
           title: 'Ngân sách',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && { backgroundColor: color + '18' }]}>
-              <Text style={[styles.icon, { color }]}>🎯</Text>
+              <Ionicons name="pie-chart-outline" size={20} color={color} />
             </View>
           ),
         }}
@@ -91,7 +92,7 @@ export default function TabLayout() {
           title: 'Hồ sơ',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && { backgroundColor: color + '18' }]}>
-              <Text style={[styles.icon, { color }]}>👤</Text>
+              <Ionicons name="person" size={20} color={color} />
             </View>
           ),
         }}

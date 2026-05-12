@@ -3,12 +3,13 @@ import { useTheme } from '../../src/hooks/useTheme';
 import { useState, useRef, useEffect } from 'react';
 import { aiAPI } from '../../src/services/api';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
+import { Ionicons } from '@expo/vector-icons';
 
 const QUICK_PROMPTS = [
-  { icon: '💰', text: 'Tôi chi tiêu thế nào tháng này?' },
-  { icon: '💡', text: 'Cho tôi lời khuyên tiết kiệm' },
-  { icon: '📊', text: 'Phân tích thói quen của tôi' },
-  { icon: '🎯', text: 'Tôi có vượt ngân sách không?' },
+  { iconName: 'wallet', text: 'Tôi chi tiêu thế nào tháng này?' },
+  { iconName: 'bulb', text: 'Cho tôi lời khuyên tiết kiệm' },
+  { iconName: 'bar-chart', text: 'Phân tích thói quen của tôi' },
+  { iconName: 'target', text: 'Tôi có vượt ngân sách không?' },
 ];
 
 export default function AIChatScreen() {
@@ -17,7 +18,7 @@ export default function AIChatScreen() {
     {
       id: 'welcome',
       role: 'ai',
-      text: 'Xin chào! 👋 Tôi là trợ lý AI quản lý chi tiêu của bạn.\n\nHãy hỏi tôi bất cứ điều gì về tài chính cá nhân.',
+      text: 'Xin chào! Tôi là trợ lý AI quản lý chi tiêu của bạn.\n\nHãy hỏi tôi bất cứ điều gì về tài chính cá nhân.',
       time: new Date(),
     }
   ]);
@@ -55,7 +56,7 @@ export default function AIChatScreen() {
       const errorMsg = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        text: '❌ Không thể kết nối AI. Vui lòng kiểm tra backend và GEMINI_API_KEY.',
+        text: 'Không thể kết nối AI. Vui lòng kiểm tra backend và GEMINI_API_KEY.',
         time: new Date(),
         isError: true,
       };
@@ -77,7 +78,7 @@ export default function AIChatScreen() {
       <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAI]}>
         {!isUser && (
           <View style={[styles.avatarAI, { backgroundColor: theme.primary + '15' }]}>
-            <Text style={styles.avatarText}>🤖</Text>
+            <Ionicons name="chatbubble" size={14} color={theme.primary} />
           </View>
         )}
         <View style={[
@@ -94,7 +95,7 @@ export default function AIChatScreen() {
         </View>
         {isUser && (
           <View style={[styles.avatarUser, { backgroundColor: theme.primary + '15' }]}>
-            <Text style={styles.avatarText}>👤</Text>
+            <Ionicons name="person" size={14} color={theme.primary} />
           </View>
         )}
       </View>
@@ -111,7 +112,7 @@ export default function AIChatScreen() {
             <Text style={[styles.headerTitle, { color: theme.text }]}>Chatbot</Text>
           </View>
           <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
-            <Text style={{ fontSize: 22 }}>ℹ️</Text>
+            <Ionicons name="book-outline" size={24} color="#6B7194" />
           </TouchableOpacity>
         </View>
       </View>
@@ -127,7 +128,9 @@ export default function AIChatScreen() {
           ListFooterComponent={
             loading ? (
               <View style={[styles.msgRow, styles.msgRowAI]}>
-                <View style={[styles.avatarAI, { backgroundColor: theme.primary + '15' }]}><Text style={styles.avatarText}>🤖</Text></View>
+                <View style={[styles.avatarAI, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="chatbubble" size={14} color={theme.primary} />
+                </View>
                 <View style={[styles.typingBubble, { backgroundColor: theme.surface, borderColor: theme.border + '50', borderWidth: 1 }]}>
                   <ActivityIndicator size="small" color={theme.textSecondary} />
                   <Text style={[styles.typingText, { color: theme.textSecondary }]}>Đang suy nghĩ...</Text>
@@ -141,7 +144,7 @@ export default function AIChatScreen() {
           <View style={styles.quickPrompts}>
             {QUICK_PROMPTS.map((prompt, i) => (
               <TouchableOpacity key={i} style={[styles.quickBtn, { backgroundColor: theme.surface, borderColor: theme.border + '60' }]} onPress={() => sendMessage(prompt.text)}>
-                <Text style={styles.quickIcon}>{prompt.icon}</Text>
+                <Ionicons name={prompt.iconName} size={16} color={theme.primary} style={styles.quickIcon} />
                 <Text style={[styles.quickText, { color: theme.text }]} numberOfLines={1}>{prompt.text}</Text>
               </TouchableOpacity>
             ))}
@@ -160,7 +163,7 @@ export default function AIChatScreen() {
             editable={!loading}
           />
           <TouchableOpacity style={[styles.sendBtn, { backgroundColor: theme.primary }, (!inputText.trim() || loading) && { opacity: 0.5 }]} onPress={() => sendMessage()} disabled={!inputText.trim() || loading}>
-            <Text style={styles.sendIcon}>➤</Text>
+            <Ionicons name="send" size={18} color="#FFF" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -170,9 +173,9 @@ export default function AIChatScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn AI Chat"
         guideItems={[
-          { icon: '🤖', title: 'Hỏi đáp AI', desc: 'Sử dụng công nghệ Google Gemini để phân tích dữ liệu tài chính thực tế của bạn.' },
-          { icon: '💡', title: 'Gợi ý câu hỏi', desc: 'Bạn có thể ấn vào các nút gợi ý nếu không biết bắt đầu từ đâu.' },
-          { icon: '🔒', title: 'Quyền riêng tư', desc: 'Chỉ các số liệu tóm tắt (không chứa thông tin nhạy cảm) mới được gửi cho AI phân tích.' }
+          { iconName: 'chatbubbles', title: 'Hỏi đáp AI', desc: 'Sử dụng công nghệ Google Gemini để phân tích dữ liệu tài chính thực tế của bạn.' },
+          { iconName: 'bulb', title: 'Gợi ý câu hỏi', desc: 'Bạn có thể ấn vào các nút gợi ý nếu không biết bắt đầu từ đâu.' },
+          { iconName: 'lock-closed', title: 'Quyền riêng tư', desc: 'Chỉ các số liệu tóm tắt (không chứa thông tin nhạy cảm) mới được gửi cho AI phân tích.' }
         ]}
       />
     </View>
@@ -193,7 +196,6 @@ const styles = StyleSheet.create({
   msgRowAI: { justifyContent: 'flex-start' },
   avatarAI: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
   avatarUser: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
-  avatarText: { fontSize: 14 },
   msgBubble: { maxWidth: '75%', padding: 14, borderRadius: 20 },
   msgBubbleUser: { borderBottomRightRadius: 4 },
   msgBubbleAI: { borderBottomLeftRadius: 4 },
@@ -203,7 +205,7 @@ const styles = StyleSheet.create({
   typingText: { fontSize: 13 },
   quickPrompts: { paddingHorizontal: 16, paddingBottom: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   quickBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1 },
-  quickIcon: { fontSize: 16 },
+  quickIcon: { marginRight: 4 },
   quickText: { fontSize: 13, fontWeight: '500' },
   inputArea: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, padding: 12, paddingBottom: Platform.OS === 'ios' ? 28 : 12, borderTopWidth: 0.5 },
   textInput: { flex: 1, borderRadius: 20, borderWidth: 1, padding: 12, paddingTop: 12, fontSize: 15, maxHeight: 100, minHeight: 44 },

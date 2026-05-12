@@ -7,8 +7,32 @@ import { formatCurrency, formatNumberInput, getCurrentMonth, parseFormattedNumbe
 import { useState, useEffect, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
+import { Ionicons } from '@expo/vector-icons';
 
-const ICONS = ['🍔','🚗','🛍️','📄','🎮','💊','📚','💰','🎁','💵','🏠','✈️','👕','💻','📱','🎬','⚽','🎵','🐾','💡','🔧','📦'];
+const ICONS = [
+  { name: 'restaurant-outline', display: '🍔' },
+  { name: 'car-outline', display: '🚗' },
+  { name: 'bag-outline', display: '🛍️' },
+  { name: 'document-text-outline', display: '📄' },
+  { name: 'game-controller-outline', display: '🎮' },
+  { name: 'medical-outline', display: '💊' },
+  { name: 'book-outline', display: '📚' },
+  { name: 'cash-outline', display: '💰' },
+  { name: 'gift-outline', display: '🎁' },
+  { name: 'wallet-outline', display: '💵' },
+  { name: 'home-outline', display: '🏠' },
+  { name: 'airplane-outline', display: '✈️' },
+  { name: 'shirt-outline', display: '👕' },
+  { name: 'laptop-outline', display: '💻' },
+  { name: 'phone-portrait-outline', display: '📱' },
+  { name: 'film-outline', display: '🎬' },
+  { name: 'football-outline', display: '⚽' },
+  { name: 'musical-notes-outline', display: '🎵' },
+  { name: 'paw-outline', display: '🐾' },
+  { name: 'bulb-outline', display: '💡' },
+  { name: 'build-outline', display: '🔧' },
+  { name: 'cube-outline', display: '📦' }
+];
 const MONTHS_VI = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
 
 export default function BudgetScreen() {
@@ -29,7 +53,7 @@ export default function BudgetScreen() {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   const [submitting, setSubmitting] = useState(false);
-  const [newCat, setNewCat] = useState({ name: '', icon: '📦', color: '#6C5CE7' });
+  const [newCat, setNewCat] = useState({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
   const [viewMonth, setViewMonth] = useState(getCurrentMonth());
 
   // Refresh data when screen focuses
@@ -41,6 +65,43 @@ export default function BudgetScreen() {
   );
 
   const onRefresh = async () => { setRefreshing(true); await Promise.all([fetchBudgets(viewMonth), fetchCategories()]); setRefreshing(false); };
+
+  // Helper function to map old emoji icons to new Ionicons
+  const mapIconToIonicons = (iconName) => {
+    const iconMap = {
+      // Map old emoji names to Ionicons
+      '🍔': 'restaurant-outline',
+      '🚗': 'car-outline',
+      '🛍️': 'bag-outline',
+      '📄': 'document-text-outline',
+      '🎮': 'game-controller-outline',
+      '💊': 'medical-outline',
+      '📚': 'book-outline',
+      '💰': 'cash-outline',
+      '🎁': 'gift-outline',
+      '💵': 'wallet-outline',
+      '🏠': 'home-outline',
+      '✈️': 'airplane-outline',
+      '👕': 'shirt-outline',
+      '💻': 'laptop-outline',
+      '📱': 'phone-portrait-outline',
+      '🎬': 'film-outline',
+      '⚽': 'football-outline',
+      '🎵': 'musical-notes-outline',
+      '🐾': 'paw-outline',
+      '💡': 'bulb-outline',
+      '🔧': 'build-outline',
+      '📦': 'cube-outline'
+    };
+    
+    // If it's already an Ionicon name (contains -outline), return it
+    if (iconName && iconName.includes('-outline')) {
+      return iconName;
+    }
+    
+    // Return mapped icon or default
+    return iconMap[iconName] || 'pie-chart-outline';
+  };
 
   const getStatusColor = (p) => p >= 100 ? theme.error : p >= 80 ? theme.warning : theme.success;
 
@@ -62,7 +123,7 @@ export default function BudgetScreen() {
       const created = await createCategory({ name: newCat.name.trim(), icon: newCat.icon, color: newCat.color, type: 'expense' });
       setSelectedCategory(created);
       setCatModalVisible(false);
-      setNewCat({ name: '', icon: '📦', color: '#6C5CE7' });
+      setNewCat({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
     } catch { Alert.alert('Lỗi', 'Không thể tạo danh mục'); }
   };
 
@@ -130,13 +191,13 @@ export default function BudgetScreen() {
         <View style={s.headerTop}>
           <Text style={[s.headerTitle, { color: theme.text }]}>Ngân sách</Text>
           <TouchableOpacity onPress={() => setGuideVisible(true)} style={s.infoBtn}>
-            <Text style={{ fontSize: 22 }}>ℹ️</Text>
+            <Ionicons name="book-outline" size={24} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
         <View style={s.monthNav}>
-          <TouchableOpacity onPress={() => navigateMonth(-1)} style={s.monthArrow}><Text style={{ color: theme.primary, fontSize: 20 }}>‹</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigateMonth(-1)} style={s.monthArrow}><Ionicons name="chevron-back" size={20} color={theme.primary} /></TouchableOpacity>
           <Text style={[s.monthText, { color: theme.text }]}>{formatMonth(viewMonth)}</Text>
-          <TouchableOpacity onPress={() => navigateMonth(1)} style={s.monthArrow}><Text style={{ color: theme.primary, fontSize: 20 }}>›</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigateMonth(1)} style={s.monthArrow}><Ionicons name="chevron-forward" size={20} color={theme.primary} /></TouchableOpacity>
         </View>
       </View>
 
@@ -170,7 +231,7 @@ export default function BudgetScreen() {
         {/* Budget List */}
         {budgets.length === 0 ? (
           <View style={s.emptyWrap}>
-            <Text style={{ fontSize: 40, marginBottom: 8 }}>🎯</Text>
+            <Ionicons name="wallet-outline" size={40} color={theme.textSecondary} style={{ marginBottom: 8 }} />
             <Text style={[s.emptyText, { color: theme.textSecondary }]}>Chưa có ngân sách</Text>
             <Text style={[{ color: theme.textLight, fontSize: 13, marginTop: 4 }]}>Nhấn + để tạo ngân sách mới</Text>
           </View>
@@ -181,13 +242,13 @@ export default function BudgetScreen() {
             <View key={item._id} style={[s.budgetItem, { borderBottomColor: theme.border + '40' }]}>
               <View style={s.budgetTop}>
                 <View style={s.budgetLeft}>
-                  <Text style={{ fontSize: 20 }}>{item.categoryId?.icon || '📦'}</Text>
+                  <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'pie-chart-outline'} size={20} color={theme.text} />
                   <Text style={[s.budgetName, { color: theme.text }]}>{item.categoryId?.name || 'Danh mục'}</Text>
                 </View>
                 <View style={s.budgetTopRight}>
                   <Text style={[s.budgetPercent, { color: getStatusColor(percent) }]}>{Math.round(percent)}%</Text>
                   <TouchableOpacity style={s.deleteBtn} onPress={() => handleDeleteBudget(item)}>
-                    <Text style={{ fontSize: 16, opacity: 0.6 }}>🗑️</Text>
+                    <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -215,7 +276,7 @@ export default function BudgetScreen() {
             <View style={s.handle} />
             <View style={s.modalHead}>
               <Text style={[s.modalTitle, { color: theme.text }]}>Tạo ngân sách</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}><Text style={{ fontSize: 20, color: theme.textSecondary }}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close" size={20} color={theme.textSecondary} /></TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Amount */}
@@ -234,9 +295,9 @@ export default function BudgetScreen() {
               {showMonthPicker && (
                 <View style={[s.monthPickerWrap, { backgroundColor: theme.surface, borderColor: theme.border + '40' }]}>
                   <View style={s.yearNav}>
-                    <TouchableOpacity onPress={() => setPickerYear(pickerYear - 1)}><Text style={{ color: theme.primary, fontSize: 18 }}>‹</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => setPickerYear(pickerYear - 1)}><Ionicons name="chevron-back" size={18} color={theme.primary} /></TouchableOpacity>
                     <Text style={[{ color: theme.text, fontWeight: '600', fontSize: 15 }]}>{pickerYear}</Text>
-                    <TouchableOpacity onPress={() => setPickerYear(pickerYear + 1)}><Text style={{ color: theme.primary, fontSize: 18 }}>›</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => setPickerYear(pickerYear + 1)}><Ionicons name="chevron-forward" size={18} color={theme.primary} /></TouchableOpacity>
                   </View>
                   <View style={s.monthGrid}>
                     {MONTHS_VI.map((name, idx) => {
@@ -260,7 +321,7 @@ export default function BudgetScreen() {
               <View style={s.catGrid}>
                 {expCats.map(cat => (
                   <TouchableOpacity key={cat._id} style={[s.catChip, { backgroundColor: theme.surface, borderColor: theme.border + '60' }, selectedCategory?._id === cat._id && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]} onPress={() => setSelectedCategory(cat)} onLongPress={() => handleDeleteCategory(cat)}>
-                    <Text style={{ fontSize: 16 }}>{cat.icon}</Text>
+                    <Ionicons name={mapIconToIonicons(cat.icon) || 'cube-outline'} size={16} color={theme.text} />
                     <Text style={[s.catName, { color: theme.text }]}>{cat.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -284,8 +345,8 @@ export default function BudgetScreen() {
             <Text style={[s.sectionLabel, { color: theme.textSecondary }]}>Chọn icon</Text>
             <View style={s.iconGrid}>
               {ICONS.map(ic => (
-                <TouchableOpacity key={ic} style={[s.iconBtn, { backgroundColor: theme.surface }, newCat.icon === ic && { backgroundColor: theme.primary + '20', borderColor: theme.primary, borderWidth: 1.5 }]} onPress={() => setNewCat({ ...newCat, icon: ic })}>
-                  <Text style={{ fontSize: 20 }}>{ic}</Text>
+                <TouchableOpacity key={ic.name} style={[s.iconBtn, { backgroundColor: theme.surface }, newCat.icon === ic.name && { backgroundColor: theme.primary + '20', borderColor: theme.primary, borderWidth: 1.5 }]} onPress={() => setNewCat({ ...newCat, icon: ic.name })}>
+                  <Ionicons name={ic.name} size={20} color={theme.text} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -306,10 +367,10 @@ export default function BudgetScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn Ngân sách"
         guideItems={[
-          { icon: '🎯', title: 'Tạo ngân sách', desc: 'Sử dụng nút (+) để tạo giới hạn chi tiêu cho từng danh mục trong một tháng cụ thể.' },
-          { icon: '🎨', title: 'Màu sắc cảnh báo', desc: 'Thanh tiến độ sẽ có màu Xanh (an toàn), Vàng (sắp hết) hoặc Đỏ (vượt ngân sách) tùy mức tiêu xài của bạn.' },
-          { icon: '📅', title: 'Quản lý theo tháng', desc: 'Sử dụng phím mũi tên ở trên cùng để xem lại ngân sách của các tháng trước.' },
-          { icon: '🗑️', title: 'Xóa', desc: 'Nhấn vào biểu tượng thùng rác 🗑️ ở góc trên bên phải của mỗi mục để xóa ngân sách đã thiết lập.' }
+          { iconName: 'wallet-outline', title: 'Tạo ngân sách', desc: 'Sử dụng nút (+) để tạo giới hạn chi tiêu cho từng danh mục trong một tháng cụ thể.' },
+          { iconName: 'color-palette-outline', title: 'Màu sắc cảnh báo', desc: 'Thanh tiến độ sẽ có màu Xanh (an toàn), Vàng (sắp hết) hoặc Đỏ (vượt ngân sách) tùy mức tiêu xài của bạn.' },
+          { iconName: 'calendar-outline', title: 'Quản lý theo tháng', desc: 'Sử dụng phím mũi tên ở trên cùng để xem lại ngân sách của các tháng trước.' },
+          { iconName: 'trash-outline', title: 'Xóa', desc: 'Nhấn vào biểu tượng thùng rác ở góc trên bên phải của mỗi mục để xóa ngân sách đã thiết lập.' }
         ]}
       />
 

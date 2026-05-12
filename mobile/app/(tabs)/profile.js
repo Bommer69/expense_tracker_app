@@ -7,6 +7,7 @@ import { useTransactions } from '../../src/hooks/useTransactions';
 import { formatCurrency } from '../../src/utils/formatters';
 import { useState } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function ProfileScreen() {
         <View style={styles.headerTop}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Hồ sơ</Text>
           <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
-            <Text style={{ fontSize: 22 }}>ℹ️</Text>
+            <Ionicons name="book-outline" size={24} color="#6B7194" />
           </TouchableOpacity>
         </View>
       </View>
@@ -69,12 +70,12 @@ export default function ProfileScreen() {
 
         <View style={styles.statsRow}>
           {[
-            { icon: '💎', label: 'Tổng số dư', value: formatCurrency(totalBalance), color: theme.text },
-            { icon: '📈', label: 'Tổng thu', value: formatCurrency(totalIncome), color: theme.success },
-            { icon: '📉', label: 'Tổng chi', value: formatCurrency(totalExpense), color: theme.error },
+            { iconName: 'cash-outline', label: 'Tổng số dư', value: formatCurrency(totalBalance), color: theme.text },
+            { iconName: 'add-circle-outline', label: 'Tổng thu', value: formatCurrency(totalIncome), color: theme.success },
+            { iconName: 'remove-circle-outline', label: 'Tổng chi', value: formatCurrency(totalExpense), color: theme.error },
           ].map(s => (
             <View key={s.label} style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]}>
-              <Text style={styles.statIcon}>{s.icon}</Text>
+              <Ionicons name={s.iconName} size={20} color={s.color} style={styles.statIcon} />
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{s.label}</Text>
               <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
             </View>
@@ -85,7 +86,9 @@ export default function ProfileScreen() {
         <View style={[styles.settingsCard, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]}>
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBg, { backgroundColor: theme.primary + '15' }]}><Text style={styles.settingIcon}>🌙</Text></View>
+              <View style={[styles.settingIconBg, { backgroundColor: theme.primary + '15' }]}>
+                <Ionicons name="moon-outline" size={18} color={theme.primary} />
+              </View>
               <Text style={[styles.settingLabel, { color: theme.text }]}>Giao diện tối</Text>
             </View>
             <Switch value={isDarkMode} onValueChange={toggleDarkMode} trackColor={{ false: theme.border, true: theme.primary + '60' }} thumbColor={isDarkMode ? theme.primary : '#f4f3f4'} />
@@ -93,7 +96,9 @@ export default function ProfileScreen() {
           <View style={[styles.dividerLine, { backgroundColor: theme.border + '50' }]} />
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBg, { backgroundColor: theme.warning + '20' }]}><Text style={styles.settingIcon}>🔔</Text></View>
+              <View style={[styles.settingIconBg, { backgroundColor: theme.warning + '20' }]}>
+                <Ionicons name="notifications-outline" size={18} color={theme.warning} />
+              </View>
               <Text style={[styles.settingLabel, { color: theme.text }]}>Thông báo</Text>
             </View>
             <Switch value={notifications} onValueChange={setNotifications} trackColor={{ false: theme.border, true: theme.primary + '60' }} thumbColor={notifications ? theme.primary : '#f4f3f4'} />
@@ -112,10 +117,10 @@ export default function ProfileScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn Hồ sơ"
         guideItems={[
-          { icon: '👤', title: 'Thông tin cá nhân', desc: 'Hiển thị tên và email đăng nhập của bạn.' },
-          { icon: '💎', title: 'Tóm tắt tài khoản', desc: 'Một cái nhìn nhanh về tổng tài sản, tổng thu và tổng chi từ trước tới nay.' },
-          { icon: '🌙', title: 'Giao diện tối', desc: 'Bật chế độ Dark Mode để bảo vệ mắt khi sử dụng ứng dụng vào ban đêm.' },
-          { icon: '🚪', title: 'Đăng xuất', desc: 'Sử dụng nút này để thoát tài khoản trên thiết bị hiện tại.' }
+          { iconName: 'person-outline', title: 'Thông tin cá nhân', desc: 'Hiển thị tên và email đăng nhập của bạn.' },
+          { iconName: 'wallet-outline', title: 'Tóm tắt tài khoản', desc: 'Một cái nhìn nhanh về tổng tài sản, tổng thu và tổng chi từ trước tới nay.' },
+          { iconName: 'moon-outline', title: 'Giao diện tối', desc: 'Bật chế độ Dark Mode để bảo vệ mắt khi sử dụng ứng dụng vào ban đêm.' },
+          { iconName: 'log-out-outline', title: 'Đăng xuất', desc: 'Sử dụng nút này để thoát tài khoản trên thiết bị hiện tại.' }
         ]}
       />
     </View>

@@ -8,8 +8,32 @@ import { formatCurrency, formatDateShort, formatNumberInput, parseFormattedNumbe
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
+import { Ionicons } from '@expo/vector-icons';
 
-const ICONS = ['🍔','🚗','🛍️','📄','🎮','💊','📚','💰','🎁','💵','🏠','✈️','👕','💻','📱','🎬','⚽','🎵','🐾','💡','🔧','📦'];
+const ICONS = [
+  { name: 'restaurant-outline', display: '🍔' },
+  { name: 'car-outline', display: '🚗' },
+  { name: 'bag-outline', display: '🛍️' },
+  { name: 'document-text-outline', display: '📄' },
+  { name: 'game-controller-outline', display: '🎮' },
+  { name: 'medical-outline', display: '💊' },
+  { name: 'book-outline', display: '📚' },
+  { name: 'cash-outline', display: '💰' },
+  { name: 'gift-outline', display: '🎁' },
+  { name: 'wallet-outline', display: '💵' },
+  { name: 'home-outline', display: '🏠' },
+  { name: 'airplane-outline', display: '✈️' },
+  { name: 'shirt-outline', display: '👕' },
+  { name: 'laptop-outline', display: '💻' },
+  { name: 'phone-portrait-outline', display: '📱' },
+  { name: 'film-outline', display: '🎬' },
+  { name: 'football-outline', display: '⚽' },
+  { name: 'musical-notes-outline', display: '🎵' },
+  { name: 'paw-outline', display: '🐾' },
+  { name: 'bulb-outline', display: '💡' },
+  { name: 'build-outline', display: '🔧' },
+  { name: 'cube-outline', display: '📦' }
+];
 
 export default function TransactionsScreen() {
   const { theme } = useTheme();
@@ -33,7 +57,7 @@ export default function TransactionsScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [newCat, setNewCat] = useState({ name: '', icon: '📦', color: '#6C5CE7' });
+  const [newCat, setNewCat] = useState({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
   const [recurringForm, setRecurringForm] = useState({
     amount: '',
     description: '',
@@ -65,6 +89,43 @@ export default function TransactionsScreen() {
     return { income: inc, expense: exp };
   }, [filtered]);
 
+  // Helper function to map old emoji icons to new Ionicons
+  const mapIconToIonicons = (iconName) => {
+    const iconMap = {
+      // Map old emoji names to Ionicons
+      '🍔': 'restaurant-outline',
+      '🚗': 'car-outline',
+      '🛍️': 'bag-outline',
+      '📄': 'document-text-outline',
+      '🎮': 'game-controller-outline',
+      '💊': 'medical-outline',
+      '📚': 'book-outline',
+      '💰': 'cash-outline',
+      '🎁': 'gift-outline',
+      '💵': 'wallet-outline',
+      '🏠': 'home-outline',
+      '✈️': 'airplane-outline',
+      '👕': 'shirt-outline',
+      '💻': 'laptop-outline',
+      '📱': 'phone-portrait-outline',
+      '🎬': 'film-outline',
+      '⚽': 'football-outline',
+      '🎵': 'musical-notes-outline',
+      '🐾': 'paw-outline',
+      '💡': 'bulb-outline',
+      '🔧': 'build-outline',
+      '📦': 'cube-outline'
+    };
+    
+    // If it's already an Ionicon name (contains -outline), return it
+    if (iconName && iconName.includes('-outline')) {
+      return iconName;
+    }
+    
+    // Return mapped icon or default
+    return iconMap[iconName] || 'card-outline';
+  };
+
   const handleSubmit = async () => {
     const amount = parseFormattedNumber(formData.amount);
     if (!amount || amount <= 0) { Alert.alert('Lỗi', 'Nhập số tiền hợp lệ'); return; }
@@ -82,7 +143,7 @@ export default function TransactionsScreen() {
       const created = await createCategory({ name: newCat.name.trim(), icon: newCat.icon, color: newCat.color, type: formData.type });
       setSelectedCategory(created);
       setCatModalVisible(false);
-      setNewCat({ name: '', icon: '📦', color: '#6C5CE7' });
+      setNewCat({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
     } catch { Alert.alert('Lỗi', 'Không thể tạo danh mục'); }
   };
 
@@ -179,7 +240,7 @@ export default function TransactionsScreen() {
   const renderItem = ({ item }) => (
     <View style={[s.txItem, { borderBottomColor: theme.border + '60' }]}>
       <View style={[s.txIcon, { backgroundColor: item.type === 'income' ? theme.success + '12' : theme.error + '12' }]}>
-        <Text style={{ fontSize: 18 }}>{item.categoryId?.icon || '💰'}</Text>
+        <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'card-outline'} size={18} color={item.type === 'income' ? theme.success : theme.error} />
       </View>
       <View style={s.txMid}>
         <Text style={[s.txDesc, { color: theme.text }]} numberOfLines={1}>{item.description || item.categoryId?.name || 'Giao dịch'}</Text>
@@ -190,7 +251,7 @@ export default function TransactionsScreen() {
           {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
         </Text>
         <TouchableOpacity style={s.deleteBtn} onPress={() => handleDelete(item)}>
-          <Text style={{ fontSize: 16, opacity: 0.6 }}>🗑️</Text>
+          <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -204,10 +265,10 @@ export default function TransactionsScreen() {
           <Text style={[s.headerTitle, { color: theme.text }]}>Giao dịch</Text>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             <TouchableOpacity onPress={() => setRecurringModalVisible(true)} style={s.infoBtn}>
-              <Text style={{ fontSize: 20 }}>🔁</Text>
+              <Ionicons name="sync-outline" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setGuideVisible(true)} style={s.infoBtn}>
-              <Text style={{ fontSize: 22 }}>ℹ️</Text>
+              <Ionicons name="book-outline" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -226,9 +287,9 @@ export default function TransactionsScreen() {
 
       {/* Search */}
       <View style={[s.searchWrap, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]}>
-        <Text style={{ fontSize: 14, opacity: 0.5 }}>🔍</Text>
+        <Ionicons name="search-outline" size={14} color={theme.textSecondary} />
         <TextInput style={[s.searchInput, { color: theme.text }]} placeholder="Tìm kiếm..." placeholderTextColor={theme.textSecondary} value={searchQuery} onChangeText={setSearchQuery} />
-        {searchQuery ? <TouchableOpacity onPress={() => setSearchQuery('')}><Text style={{ color: theme.textSecondary, fontSize: 16 }}>✕</Text></TouchableOpacity> : null}
+        {searchQuery ? <TouchableOpacity onPress={() => setSearchQuery('')}><Ionicons name="close-circle" size={16} color={theme.textSecondary} /></TouchableOpacity> : null}
       </View>
 
       {/* Filters */}
@@ -243,7 +304,7 @@ export default function TransactionsScreen() {
       {/* List */}
       <FlatList data={filtered} renderItem={renderItem} keyExtractor={item => item._id} contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
-        ListEmptyComponent={<View style={s.empty}><Text style={{ fontSize: 40, marginBottom: 8 }}>📝</Text><Text style={[s.emptyText, { color: theme.textSecondary }]}>{searchQuery ? 'Không tìm thấy' : 'Chưa có giao dịch'}</Text></View>} />
+        ListEmptyComponent={<View style={s.empty}><Ionicons name="document-text-outline" size={40} color={theme.textSecondary} style={{ marginBottom: 8 }} /><Text style={[s.emptyText, { color: theme.textSecondary }]}>{searchQuery ? 'Không tìm thấy' : 'Chưa có giao dịch'}</Text></View>} />
 
       {/* FAB */}
       <TouchableOpacity style={[s.fab, { backgroundColor: theme.primary }]} onPress={() => setModalVisible(true)}>
@@ -257,7 +318,7 @@ export default function TransactionsScreen() {
             <View style={s.handle} />
             <View style={s.modalHead}>
               <Text style={[s.modalTitle, { color: theme.text }]}>Thêm giao dịch</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}><Text style={{ fontSize: 20, color: theme.textSecondary }}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close" size={20} color={theme.textSecondary} /></TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Type toggle */}
@@ -284,17 +345,17 @@ export default function TransactionsScreen() {
               <TouchableOpacity style={[s.dateBtn, { backgroundColor: theme.surface, borderColor: theme.border + '60' }]} onPress={() => { setPickerMonth(new Date(selectedDate)); setShowDatePicker(!showDatePicker); }}>
                 <Text style={[{ color: theme.text, fontSize: 15 }]}>{formatDisplayDate(selectedDate)}</Text>
                 <View style={s.dateNav}>
-                  <TouchableOpacity onPress={() => adjustDate(-1)} style={s.dateArrow}><Text style={{ color: theme.textSecondary }}>‹</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => adjustDate(1)} style={s.dateArrow}><Text style={{ color: theme.textSecondary }}>›</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => adjustDate(-1)} style={s.dateArrow}><Ionicons name="chevron-back" size={16} color={theme.textSecondary} /></TouchableOpacity>
+                  <TouchableOpacity onPress={() => adjustDate(1)} style={s.dateArrow}><Ionicons name="chevron-forward" size={16} color={theme.textSecondary} /></TouchableOpacity>
                 </View>
               </TouchableOpacity>
 
               {showDatePicker && (
                 <View style={[s.calendarWrap, { backgroundColor: theme.surface, borderColor: theme.border + '40' }]}>
                   <View style={s.calHead}>
-                    <TouchableOpacity onPress={() => { const d = new Date(pickerMonth); d.setMonth(d.getMonth() - 1); setPickerMonth(d); }}><Text style={{ color: theme.primary, fontSize: 18 }}>‹</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => { const d = new Date(pickerMonth); d.setMonth(d.getMonth() - 1); setPickerMonth(d); }}><Ionicons name="chevron-back" size={18} color={theme.primary} /></TouchableOpacity>
                     <Text style={[{ color: theme.text, fontWeight: '600', fontSize: 14 }]}>{pickerMonth.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}</Text>
-                    <TouchableOpacity onPress={() => { const d = new Date(pickerMonth); d.setMonth(d.getMonth() + 1); setPickerMonth(d); }}><Text style={{ color: theme.primary, fontSize: 18 }}>›</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => { const d = new Date(pickerMonth); d.setMonth(d.getMonth() + 1); setPickerMonth(d); }}><Ionicons name="chevron-forward" size={18} color={theme.primary} /></TouchableOpacity>
                   </View>
                   <View style={s.calDays}>
                     {['T2','T3','T4','T5','T6','T7','CN'].map(d => <Text key={d} style={[s.calDayLabel, { color: theme.textSecondary }]}>{d}</Text>)}
@@ -327,7 +388,7 @@ export default function TransactionsScreen() {
               <View style={s.catGrid}>
                 {filteredCats.map(cat => (
                   <TouchableOpacity key={cat._id} style={[s.catChip, { backgroundColor: theme.surface, borderColor: theme.border + '60' }, selectedCategory?._id === cat._id && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]} onPress={() => setSelectedCategory(cat)} onLongPress={() => handleDeleteCategory(cat)}>
-                    <Text style={{ fontSize: 16 }}>{cat.icon}</Text>
+                    <Ionicons name={mapIconToIonicons(cat.icon) || 'cube-outline'} size={16} color={theme.text} />
                     <Text style={[s.catName, { color: theme.text }]}>{cat.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -351,8 +412,8 @@ export default function TransactionsScreen() {
             <Text style={[s.sectionLabel, { color: theme.textSecondary }]}>Chọn icon</Text>
             <View style={s.iconGrid}>
               {ICONS.map(ic => (
-                <TouchableOpacity key={ic} style={[s.iconBtn, { backgroundColor: theme.surface }, newCat.icon === ic && { backgroundColor: theme.primary + '20', borderColor: theme.primary, borderWidth: 1.5 }]} onPress={() => setNewCat({ ...newCat, icon: ic })}>
-                  <Text style={{ fontSize: 20 }}>{ic}</Text>
+                <TouchableOpacity key={ic.name} style={[s.iconBtn, { backgroundColor: theme.surface }, newCat.icon === ic.name && { backgroundColor: theme.primary + '20', borderColor: theme.primary, borderWidth: 1.5 }]} onPress={() => setNewCat({ ...newCat, icon: ic.name })}>
+                  <Ionicons name={ic.name} size={20} color={theme.text} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -373,10 +434,10 @@ export default function TransactionsScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn Giao dịch"
         guideItems={[
-          { icon: '➕', title: 'Thêm Giao dịch', desc: 'Ấn dấu (+) ở góc dưới màn hình để tạo thu nhập hoặc chi tiêu. Bạn có thể chọn ngày trong quá khứ nếu lỡ quên nhập.' },
-          { icon: '🏷️', title: 'Thêm Danh mục', desc: 'Khi đang thêm giao dịch, bạn có thể tự do tạo danh mục mới với biểu tượng icon và tên tùy thích.' },
-          { icon: '🔍', title: 'Tìm kiếm & Bộ lọc', desc: 'Sử dụng thanh tìm kiếm để tìm chi tiêu, hoặc dùng bộ lọc (Thu nhập/Chi tiêu) để dễ quan sát hơn.' },
-          { icon: '🗑️', title: 'Xóa giao dịch', desc: 'Nhấn vào biểu tượng thùng rác 🗑️ ở bên phải mỗi giao dịch để xóa nó.' }
+          { iconName: 'add-circle-outline', title: 'Thêm Giao dịch', desc: 'Ấn dấu (+) ở góc dưới màn hình để tạo thu nhập hoặc chi tiêu. Bạn có thể chọn ngày trong quá khứ nếu lỡ quên nhập.' },
+          { iconName: 'pricetag-outline', title: 'Thêm Danh mục', desc: 'Khi đang thêm giao dịch, bạn có thể tự do tạo danh mục mới với biểu tượng icon và tên tùy thích.' },
+          { iconName: 'search-outline', title: 'Tìm kiếm & Bộ lọc', desc: 'Sử dụng thanh tìm kiếm để tìm chi tiêu, hoặc dùng bộ lọc (Thu nhập/Chi tiêu) để dễ quan sát hơn.' },
+          { iconName: 'trash-outline', title: 'Xóa giao dịch', desc: 'Nhấn vào biểu tượng thùng rác ở bên phải mỗi giao dịch để xóa nó.' }
         ]}
       />
 
@@ -395,7 +456,7 @@ export default function TransactionsScreen() {
             <View style={s.modalHead}>
               <Text style={[s.modalTitle, { color: theme.text }]}>Giao dịch định kỳ</Text>
               <TouchableOpacity onPress={() => setRecurringModalVisible(false)}>
-                <Text style={{ fontSize: 20, color: theme.textSecondary }}>✕</Text>
+                <Ionicons name="close" size={20} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -438,7 +499,7 @@ export default function TransactionsScreen() {
                     style={[s.catChip, { backgroundColor: theme.surface, borderColor: theme.border + '60' }, recurringForm.categoryId === cat._id && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}
                     onPress={() => setRecurringForm(prev => ({ ...prev, categoryId: cat._id }))}
                   >
-                    <Text style={{ fontSize: 16 }}>{cat.icon}</Text>
+                    <Ionicons name={mapIconToIonicons(cat.icon) || 'cube-outline'} size={16} color={theme.text} />
                     <Text style={[s.catName, { color: theme.text }]}>{cat.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -463,7 +524,7 @@ export default function TransactionsScreen() {
                       {r.type === 'income' ? '+' : '-'}{formatCurrency(r.amount)}
                     </Text>
                     <TouchableOpacity style={s.deleteBtn} onPress={() => handleDeleteRecurring(r)}>
-                      <Text style={{ fontSize: 16, opacity: 0.6 }}>🗑️</Text>
+                      <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>
