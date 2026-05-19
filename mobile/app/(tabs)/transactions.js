@@ -612,6 +612,8 @@ const s = StyleSheet.create({
   txDesc: { fontSize: 15, fontWeight: '500', marginBottom: 2 },
   txDate: { fontSize: 12 },
   txAmt: { fontSize: 15, fontWeight: '600' },
+  txRight: { alignItems: 'flex-end', justifyContent: 'center' },
+  deleteBtn: { padding: 4, marginTop: -2 },
   swipeActions: { flexDirection: 'row', alignItems: 'stretch' },
   swipeBtn: { width: 72, justifyContent: 'center', alignItems: 'center', gap: 4, paddingVertical: 14 },
   swipeBtnText: { color: '#fff', fontSize: 11, fontWeight: '600' },
