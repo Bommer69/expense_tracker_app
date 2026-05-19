@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
 import { Ionicons } from '@expo/vector-icons';
+import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const ICONS = [
   { name: 'restaurant-outline', display: '🍔' },
@@ -37,7 +38,7 @@ const ICONS = [
 
 export default function TransactionsScreen() {
   const { theme } = useTheme();
-  const { transactions, loading, fetchTransactions, createTransaction, deleteTransaction } = useTransactions(100);
+  const { transactions, loading, fetchTransactions, createTransaction, updateTransaction, deleteTransaction } = useTransactions(100);
   const { categories, fetchCategories, createCategory, deleteCategory } = useCategories();
   const { recurrings, fetchRecurrings, createRecurring, removeRecurring } = useRecurringTransactions();
   const [refreshing, setRefreshing] = useState(false);
@@ -57,6 +58,7 @@ export default function TransactionsScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingTx, setEditingTx] = useState(null);
   const [newCat, setNewCat] = useState({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
   const [recurringForm, setRecurringForm] = useState({
     amount: '',
@@ -126,15 +128,49 @@ export default function TransactionsScreen() {
     return iconMap[iconName] || 'card-outline';
   };
 
+  const closeModal = () => {
+    setModalVisible(false);
+    setFormData({ amount: '', description: '', type: 'expense' });
+    setSelectedCategory(null);
+    setSelectedDate(new Date());
+    setEditingTx(null);
+  };
+
+  const handleEdit = (tx) => {
+    setFormData({
+      amount: formatNumberInput(String(tx.amount)),
+      description: tx.description || '',
+      type: tx.type,
+    });
+    setSelectedCategory(tx.categoryId || null);
+    setSelectedDate(new Date(tx.date));
+    setEditingTx(tx);
+    setPickerMonth(new Date(tx.date));
+    setModalVisible(true);
+  };
+
   const handleSubmit = async () => {
     const amount = parseFormattedNumber(formData.amount);
     if (!amount || amount <= 0) { Alert.alert('Lỗi', 'Nhập số tiền hợp lệ'); return; }
     if (!selectedCategory) { Alert.alert('Lỗi', 'Chọn danh mục'); return; }
     setSubmitting(true);
     try {
-      await createTransaction({ amount, description: formData.description, type: formData.type, categoryId: selectedCategory._id, date: selectedDate.toISOString() });
-      setModalVisible(false); setFormData({ amount: '', description: '', type: 'expense' }); setSelectedCategory(null); setSelectedDate(new Date());
-    } catch { Alert.alert('Lỗi', 'Không thể tạo giao dịch'); } finally { setSubmitting(false); }
+      const payload = {
+        amount,
+        description: formData.description,
+        type: formData.type,
+        categoryId: selectedCategory._id,
+        date: selectedDate.toISOString(),
+      };
+      if (editingTx) {
+        await updateTransaction(editingTx._id, payload);
+      } else {
+        await createTransaction(payload);
+      }
+      closeModal();
+    } catch {
+      Alert.alert('Lỗi', editingTx ? 'Không thể cập nhật giao dịch' : 'Không thể tạo giao dịch');
+    } finally { setSubmitting(false); }
   };
 
   const handleCreateCategory = async () => {
@@ -237,28 +273,44 @@ export default function TransactionsScreen() {
   };
   const [pickerMonth, setPickerMonth] = useState(new Date());
 
-  const renderItem = ({ item }) => (
-    <View style={[s.txItem, { borderBottomColor: theme.border + '60' }]}>
-      <View style={[s.txIcon, { backgroundColor: item.type === 'income' ? theme.success + '12' : theme.error + '12' }]}>
-        <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'card-outline'} size={18} color={item.type === 'income' ? theme.success : theme.error} />
-      </View>
-      <View style={s.txMid}>
-        <Text style={[s.txDesc, { color: theme.text }]} numberOfLines={1}>{item.description || item.categoryId?.name || 'Giao dịch'}</Text>
-        <Text style={[s.txDate, { color: theme.textSecondary }]}>{formatDateShort(item.date)}{item.categoryId?.name ? ` · ${item.categoryId.name}` : ''}</Text>
-      </View>
-      <View style={s.txRight}>
-        <Text style={[s.txAmt, { color: item.type === 'income' ? theme.success : theme.error }]}>
-          {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
-        </Text>
-        <TouchableOpacity style={s.deleteBtn} onPress={() => handleDelete(item)}>
-          <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
-        </TouchableOpacity>
-      </View>
+  const renderRightActions = (tx) => (
+    <View style={s.swipeActions}>
+      <TouchableOpacity
+        style={[s.swipeBtn, { backgroundColor: theme.primary }]}
+        onPress={() => handleEdit(tx)}
+      >
+        <Ionicons name="pencil-outline" size={18} color="#fff" />
+        <Text style={s.swipeBtnText}>Sửa</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[s.swipeBtn, { backgroundColor: theme.error }]}
+        onPress={() => handleDelete(tx)}
+      >
+        <Ionicons name="trash-outline" size={18} color="#fff" />
+        <Text style={s.swipeBtnText}>Xóa</Text>
+      </TouchableOpacity>
     </View>
   );
 
+  const renderItem = ({ item }) => (
+    <Swipeable renderRightActions={() => renderRightActions(item)} overshootRight={false}>
+      <View style={[s.txItem, { borderBottomColor: theme.border + '60', backgroundColor: theme.background }]}>
+        <View style={[s.txIcon, { backgroundColor: item.type === 'income' ? theme.success + '12' : item.type === 'expense' ? theme.error + '12' : theme.error + '12' }]}>
+          <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'card-outline'} size={18} color={item.type === 'income' ? theme.success : theme.error} />
+        </View>
+        <View style={s.txMid}>
+          <Text style={[s.txDesc, { color: theme.text }]} numberOfLines={1}>{item.description || item.categoryId?.name || 'Giao dịch'}</Text>
+          <Text style={[s.txDate, { color: theme.textSecondary }]}>{formatDateShort(item.date)}{item.categoryId?.name ? ` · ${item.categoryId.name}` : ''}</Text>
+        </View>
+        <Text style={[s.txAmt, { color: item.type === 'income' ? theme.success : theme.error }]}>
+          {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
+        </Text>
+      </View>
+    </Swipeable>
+  );
+
   return (
-    <View style={[s.container, { backgroundColor: theme.background }]}>
+    <GestureHandlerRootView style={[s.container, { backgroundColor: theme.background }]}>
       {/* Header */}
       <View style={[s.header, { borderBottomColor: theme.border + '40' }]}>  
         <View style={s.headerTop}>
@@ -312,13 +364,13 @@ export default function TransactionsScreen() {
       </TouchableOpacity>
 
       {/* Add Transaction Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
+      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
         <View style={s.overlay}>
           <View style={[s.modal, { backgroundColor: theme.background }]}>
             <View style={s.handle} />
             <View style={s.modalHead}>
-              <Text style={[s.modalTitle, { color: theme.text }]}>Thêm giao dịch</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close" size={20} color={theme.textSecondary} /></TouchableOpacity>
+              <Text style={[s.modalTitle, { color: theme.text }]}>{editingTx ? 'Sửa giao dịch' : 'Thêm giao dịch'}</Text>
+              <TouchableOpacity onPress={closeModal}><Ionicons name="close" size={20} color={theme.textSecondary} /></TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Type toggle */}
@@ -396,7 +448,7 @@ export default function TransactionsScreen() {
 
               {/* Submit */}
               <TouchableOpacity style={[s.submitBtn, { backgroundColor: theme.primary }, submitting && { opacity: 0.5 }]} onPress={handleSubmit} disabled={submitting}>
-                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>Thêm giao dịch</Text>}
+                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>{editingTx ? 'Cập nhật' : 'Thêm giao dịch'}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -533,7 +585,7 @@ export default function TransactionsScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -559,9 +611,10 @@ const s = StyleSheet.create({
   txMid: { flex: 1 },
   txDesc: { fontSize: 15, fontWeight: '500', marginBottom: 2 },
   txDate: { fontSize: 12 },
-  txRight: { alignItems: 'flex-end', justifyContent: 'center' },
-  txAmt: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
-  deleteBtn: { padding: 4, marginTop: -2 },
+  txAmt: { fontSize: 15, fontWeight: '600' },
+  swipeActions: { flexDirection: 'row', alignItems: 'stretch' },
+  swipeBtn: { width: 72, justifyContent: 'center', alignItems: 'center', gap: 4, paddingVertical: 14 },
+  swipeBtnText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyText: { fontSize: 15 },
   fab: { position: 'absolute', bottom: 90, right: 20, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
