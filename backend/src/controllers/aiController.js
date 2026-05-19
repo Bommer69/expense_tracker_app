@@ -101,6 +101,13 @@ async function chat(req, res) {
         errorText.includes('reported as leaked')
       ) {
         answer = '⚠️ API key Gemini không hợp lệ hoặc đã bị thu hồi do lộ key.\n\nVui lòng tạo key mới tại https://aistudio.google.com/apikey, cập nhật GEMINI_API_KEY trong backend/.env và khởi động lại backend.';
+      } else if (
+        errorText.includes('RESOURCE_EXHAUSTED') ||
+        errorText.includes('Quota exceeded') ||
+        errorText.includes('rate-limit') ||
+        errorText.includes('free_tier')
+      ) {
+        answer = '⚠️ API key đã hết quota miễn phí.\n\nVui lòng lấy key mới tại https://aistudio.google.com/apikey (chọn "Create API key" — miễn phí), cập nhật GEMINI_API_KEY trong backend/.env và khởi động lại backend.';
       } else {
         answer = `🤖 Xin lỗi, AI tạm thời không khả dụng.\n\n📊 Tóm tắt nhanh tháng này:\n- Thu nhập: ${context.stats.totalIncome.toLocaleString()} VND\n- Chi tiêu: ${context.stats.totalExpense.toLocaleString()} VND\n- Số giao dịch: ${context.stats.transactionCount}`;
       }
