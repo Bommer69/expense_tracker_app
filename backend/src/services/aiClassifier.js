@@ -1,9 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
-const { HumanMessage, AIMessage, SystemMessage, ToolMessage } = require('@langchain/core/messages');
-const { createTools } = require('./aiTools');
+const { toolDeclarations, toolFunctions } = require('./aiTools');
 
-// --- Raw Gemini SDK (dùng cho classify + advice) ---
 let genAI = null;
 let model = null;
 
@@ -25,19 +22,7 @@ function getModel() {
   return model;
 }
 
-// --- LangChain model (dùng cho chat với tool calling) ---
-let chatLLM = null;
-
-function getChatLLM() {
-  if (!chatLLM) {
-    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-    if (!apiKey || apiKey === 'your-gemini-api-key-here') return null;
-    chatLLM = new ChatGoogleGenerativeAI({ model: 'gemini-2.5-flash', apiKey });
-  }
-  return chatLLM;
-}
-
-// Per-user conversation history: userId(string) → LangChain message[]
+// Per-user conversation history: [{role:'user'|'model', parts:[...]}]
 const userHistories = new Map();
 const MAX_HISTORY = 20;
 
@@ -52,58 +37,55 @@ function clearUserMemory(userId) {
 }
 
 /**
- * Chat với AI sử dụng LangChain tool-calling.
- * AI tự quyết định gọi tool nào để truy vấn MongoDB thay vì nhận context cứng.
+ * Chat với AI dùng native Gemini function calling.
+ * AI tự quyết định gọi tool nào để truy vấn MongoDB.
  */
 async function chatWithAI(message, userId) {
-  const llm = getChatLLM();
-  if (!llm) throw new Error('GEMINI_API_KEY chưa được cấu hình');
+  const ai = getGenAI();
+  if (!ai) throw new Error('GEMINI_API_KEY chưa được cấu hình');
 
-  const tools = createTools(userId);
-  const llmWithTools = llm.bindTools(tools);
-
-  const systemMessage = new SystemMessage(
-    `Bạn là "Trợ lý Chi tiêu Thông minh" - AI chuyên về quản lý tài chính cá nhân.
+  const chatModel = ai.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    systemInstruction: `Bạn là "Trợ lý Chi tiêu Thông minh" - AI chuyên về quản lý tài chính cá nhân.
 Trả lời bằng tiếng Việt, thân thiện, ngắn gọn (tối đa 200 từ). Dùng emoji sinh động.
-
-Bạn có công cụ để truy vấn dữ liệu chi tiêu thực tế của người dùng từ database.
-Hãy dùng công cụ phù hợp để lấy số liệu chính xác trước khi trả lời.
-Đơn vị tiền tệ là VND.`
-  );
+Hãy dùng công cụ để lấy số liệu chính xác từ database trước khi trả lời.
+Đơn vị tiền tệ là VND.`,
+    tools: [{ functionDeclarations: toolDeclarations }],
+  });
 
   const history = getHistory(userId);
-  const allMessages = [systemMessage, ...history, new HumanMessage(message)];
+  const chat = chatModel.startChat({ history: [...history] });
 
-  let response = await llmWithTools.invoke(allMessages);
+  let result = await chat.sendMessage(message);
 
-  // Tool-calling loop — AI có thể gọi nhiều tool liên tiếp
+  // Function-calling loop — AI có thể gọi nhiều tool liên tiếp
   let iterations = 0;
-  while (response.tool_calls?.length > 0 && iterations < 5) {
+  while (result.response.functionCalls()?.length > 0 && iterations < 5) {
     iterations++;
-    allMessages.push(response);
+    const calls = result.response.functionCalls();
+    const functionResponses = [];
 
-    for (const tc of response.tool_calls) {
-      const t = tools.find(t => t.name === tc.name);
-      let result;
+    for (const call of calls) {
+      const fn = toolFunctions[call.name];
+      let output;
       try {
-        result = t ? await t.invoke(tc.args) : `Tool "${tc.name}" không tồn tại`;
+        output = fn ? await fn(call.args, userId) : `Tool "${call.name}" không tồn tại`;
       } catch (err) {
-        result = `Lỗi khi truy vấn: ${err.message}`;
+        output = `Lỗi khi truy vấn: ${err.message}`;
       }
-      allMessages.push(new ToolMessage({ content: String(result), tool_call_id: tc.id }));
+      functionResponses.push({
+        functionResponse: { name: call.name, response: { result: String(output) } },
+      });
     }
 
-    response = await llmWithTools.invoke(allMessages);
+    result = await chat.sendMessage(functionResponses);
   }
 
-  // Extract text (xử lý cả trường hợp thinking tokens trả về array)
-  const replyText = Array.isArray(response.content)
-    ? response.content.filter(c => c.type === 'text').map(c => c.text).join('') || String(response.content)
-    : String(response.content);
+  const replyText = result.response.text();
 
-  // Chỉ lưu HumanMessage/AIMessage vào history (không lưu tool messages)
-  history.push(new HumanMessage(message));
-  history.push(new AIMessage(replyText));
+  // Lưu history (chỉ user/model, không lưu function call turns)
+  history.push({ role: 'user', parts: [{ text: message }] });
+  history.push({ role: 'model', parts: [{ text: replyText }] });
   if (history.length > MAX_HISTORY) {
     history.splice(0, history.length - MAX_HISTORY);
   }
@@ -112,7 +94,7 @@ Hãy dùng công cụ phù hợp để lấy số liệu chính xác trước kh
 }
 
 /**
- * Lời khuyên chi tiêu (stateless, dùng raw SDK)
+ * Lời khuyên chi tiêu (stateless)
  */
 async function getSpendingAdvice(context) {
   const gemini = getModel();
@@ -129,11 +111,11 @@ Trả lời dưới dạng danh sách 3 mục, mỗi mục một dòng.`;
 }
 
 /**
- * Phân loại giao dịch (stateless, dùng raw SDK)
+ * Phân loại giao dịch (stateless)
  */
 async function classifyTransaction(description, amount) {
   const gemini = getModel();
-  if (!gemini) return fallbackClassify(description, amount);
+  if (!gemini) return fallbackClassify(description);
 
   try {
     const prompt = `Phân loại giao dịch tài chính sau vào đúng 1 danh mục.
@@ -150,10 +132,10 @@ Trả lời CHỈ JSON, không có text khác:
     const content = result.response.text();
     const match = content.match(/\{[\s\S]*\}/);
     if (match) return JSON.parse(match[0]);
-    return fallbackClassify(description, amount);
+    return fallbackClassify(description);
   } catch (err) {
     console.log('AI classification failed:', err.message);
-    return fallbackClassify(description, amount);
+    return fallbackClassify(description);
   }
 }
 
