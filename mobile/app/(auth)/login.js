@@ -91,7 +91,7 @@ export default function LoginScreen() {
       <View style={styles.bgCircle2} />
       <View style={styles.bgCircle3} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.scrollView}>
           <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ scale: logoScale }] }]}>
             <View style={styles.logoContainer}>
               <Ionicons name="wallet" size={56} color="#6C5CE7" />
@@ -227,11 +227,12 @@ const obStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1A1D2E' },
+  container: { flex: 1, backgroundColor: '#1A1D2E', overflow: 'hidden' },
   bgCircle1: { position: 'absolute', top: -120, right: -80, width: 300, height: 300, borderRadius: 150, backgroundColor: '#6C5CE730' },
   bgCircle2: { position: 'absolute', top: height * 0.15, left: -100, width: 250, height: 250, borderRadius: 125, backgroundColor: '#A29BFE15' },
   bgCircle3: { position: 'absolute', bottom: -80, right: -60, width: 220, height: 220, borderRadius: 110, backgroundColor: '#00CECE10' },
   keyboardView: { flex: 1 },
+  scrollView: { backgroundColor: '#1A1D2E' },
   scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40 },
   header: { alignItems: 'center', marginBottom: 36 },
   logoContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#6C5CE720', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },

@@ -7,7 +7,11 @@
       "Bash(npm install *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(node -e \"require\\('@langchain/google-genai'\\); console.log\\('ok'\\)\")",
+      "Bash(node -e \"require\\('@langchain/google-genai'\\); require\\('@langchain/core/messages'\\); console.log\\('ok'\\)\")",
+      "Bash(node -e \"const s = require\\('./src/services/aiClassifier'\\); console.log\\(Object.keys\\(s\\)\\)\")",
+      "Bash(node -e ' *)"
     ]
   }
 }
