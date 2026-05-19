@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx expo *)"
+      "Bash(npx expo *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\OS\\\\OneDrive\\\\Documents\\\\expense-tracker\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "WebSearch"
     ]
   }
 }
