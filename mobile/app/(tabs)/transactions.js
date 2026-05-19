@@ -9,7 +9,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
 import { Ionicons } from '@expo/vector-icons';
-import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Swipeable } from 'react-native-gesture-handler';
 
 const ICONS = [
   { name: 'restaurant-outline', display: '🍔' },
@@ -310,7 +310,7 @@ export default function TransactionsScreen() {
   );
 
   return (
-    <GestureHandlerRootView style={[s.container, { backgroundColor: theme.background }]}>
+    <View style={[s.container, { backgroundColor: theme.background }]}>
       {/* Header */}
       <View style={[s.header, { borderBottomColor: theme.border + '40' }]}>  
         <View style={s.headerTop}>
@@ -489,7 +489,7 @@ export default function TransactionsScreen() {
           { iconName: 'add-circle-outline', title: 'Thêm Giao dịch', desc: 'Ấn dấu (+) ở góc dưới màn hình để tạo thu nhập hoặc chi tiêu. Bạn có thể chọn ngày trong quá khứ nếu lỡ quên nhập.' },
           { iconName: 'pricetag-outline', title: 'Thêm Danh mục', desc: 'Khi đang thêm giao dịch, bạn có thể tự do tạo danh mục mới với biểu tượng icon và tên tùy thích.' },
           { iconName: 'search-outline', title: 'Tìm kiếm & Bộ lọc', desc: 'Sử dụng thanh tìm kiếm để tìm chi tiêu, hoặc dùng bộ lọc (Thu nhập/Chi tiêu) để dễ quan sát hơn.' },
-          { iconName: 'trash-outline', title: 'Xóa giao dịch', desc: 'Nhấn vào biểu tượng thùng rác ở bên phải mỗi giao dịch để xóa nó.' }
+          { iconName: 'trash-outline', title: 'Xóa giao dịch', desc: 'Vuốt sang trái trên giao dịch để hiện nút Sửa và Xóa.' }
         ]}
       />
 
@@ -585,7 +585,7 @@ export default function TransactionsScreen() {
           </View>
         </View>
       </Modal>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 

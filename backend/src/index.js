@@ -19,10 +19,11 @@ const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || '*',
+const allowedOrigin = process.env.ALLOWED_ORIGIN;
+app.use(cors(allowedOrigin ? {
+  origin: allowedOrigin,
   credentials: true,
-}));
+} : {}));
 app.use(express.json());
 
 // Rate limiting cho auth routes (chống brute force)
