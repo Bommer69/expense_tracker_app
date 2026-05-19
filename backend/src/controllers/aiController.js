@@ -5,7 +5,7 @@
 const Transaction = require('../models/Transaction');
 const Budget = require('../models/Budget');
 const { getUserId } = require('../utils/auth');
-const { chatWithAI, getSpendingAdvice } = require('../services/aiClassifier');
+const { chatWithAI, getSpendingAdvice, clearUserMemory } = require('../services/aiClassifier');
 
 /**
  * Build spending context from user data
@@ -87,7 +87,7 @@ async function chat(req, res) {
     
     let answer;
     try {
-      answer = await chatWithAI(message, context.text);
+      answer = await chatWithAI(message, context.text, userId);
     } catch (err) {
       console.error('AI chat error:', err.message);
       const errorText = String(err.message || '');
@@ -178,4 +178,15 @@ async function advice(req, res) {
   }
 }
 
-module.exports = { chat, getStats, advice };
+async function clearHistory(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    clearUserMemory(userId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { chat, getStats, advice, clearHistory };
