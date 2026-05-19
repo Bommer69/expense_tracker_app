@@ -48,6 +48,20 @@ export const useTransactions = (limit = 50) => {
     }
   }, []);
 
+  const updateTransaction = useCallback(async (id, data) => {
+    setLoading(true);
+    try {
+      const response = await transactionsAPI.update(id, data);
+      setTransactions(prev => prev.map(t => t._id === id ? response.data : t));
+      return response.data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
@@ -58,6 +72,7 @@ export const useTransactions = (limit = 50) => {
     error,
     fetchTransactions,
     createTransaction,
+    updateTransaction,
     deleteTransaction,
   };
 };
