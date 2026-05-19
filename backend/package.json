@@ -10,6 +10,8 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@langchain/community": "^1.1.27",
+    "@langchain/core": "^1.1.47",
+    "@langchain/google-genai": "^2.1.31",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
