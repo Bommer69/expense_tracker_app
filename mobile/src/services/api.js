@@ -83,6 +83,7 @@ export const aiAPI = {
   getStats: () => api.get('/ai/stats'),
   chat: (message) => api.post('/ai/chat', { message }),
   getAdvice: () => api.get('/ai/advice'),
+  clearHistory: () => api.delete('/ai/chat/history'),
 };
 
 // Accounts API
