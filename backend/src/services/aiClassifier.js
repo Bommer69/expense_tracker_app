@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { toolDeclarations, toolFunctions } = require('./aiTools');
+const ChatMessage = require('../models/ChatMessage');
 
 let genAI = null;
 let model = null;
@@ -22,18 +23,25 @@ function getModel() {
   return model;
 }
 
-// Per-user conversation history: [{role:'user'|'model', parts:[...]}]
+// In-memory cache: userId(string) → [{role, parts}[]}]
+// Cache được load từ DB lần đầu, sau đó dùng cache cho tốc độ
 const userHistories = new Map();
-const MAX_HISTORY = 20;
+const MAX_HISTORY = 40; // 20 exchanges
 
-function getHistory(userId) {
+async function getHistory(userId) {
   const key = String(userId);
-  if (!userHistories.has(key)) userHistories.set(key, []);
+  if (!userHistories.has(key)) {
+    const msgs = await ChatMessage.find({ userId })
+      .sort({ createdAt: 1 })
+      .limit(MAX_HISTORY);
+    userHistories.set(key, msgs.map(m => ({ role: m.role, parts: [{ text: m.text }] })));
+  }
   return userHistories.get(key);
 }
 
-function clearUserMemory(userId) {
+async function clearUserMemory(userId) {
   userHistories.delete(String(userId));
+  await ChatMessage.deleteMany({ userId });
 }
 
 /**
@@ -53,7 +61,7 @@ Hãy dùng công cụ để lấy số liệu chính xác từ database trước
     tools: [{ functionDeclarations: toolDeclarations }],
   });
 
-  const history = getHistory(userId);
+  const history = await getHistory(userId);
   const chat = chatModel.startChat({ history: [...history] });
 
   let result = await chat.sendMessage(message);
@@ -83,7 +91,11 @@ Hãy dùng công cụ để lấy số liệu chính xác từ database trước
 
   const replyText = result.response.text();
 
-  // Lưu history (chỉ user/model, không lưu function call turns)
+  // Lưu vào DB và cập nhật cache
+  await ChatMessage.insertMany([
+    { userId, role: 'user', text: message },
+    { userId, role: 'model', text: replyText },
+  ]);
   history.push({ role: 'user', parts: [{ text: message }] });
   history.push({ role: 'model', parts: [{ text: replyText }] });
   if (history.length > MAX_HISTORY) {

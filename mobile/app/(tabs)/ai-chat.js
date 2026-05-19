@@ -12,22 +12,44 @@ const QUICK_PROMPTS = [
   { iconName: 'target', text: 'Tôi có vượt ngân sách không?' },
 ];
 
+const WELCOME_MSG = {
+  id: 'welcome',
+  role: 'ai',
+  text: 'Xin chào! Tôi là trợ lý AI quản lý chi tiêu của bạn.\n\nHãy hỏi tôi bất cứ điều gì về tài chính cá nhân.',
+  time: new Date(),
+};
+
 export default function AIChatScreen() {
   const { theme } = useTheme();
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      role: 'ai',
-      text: 'Xin chào! Tôi là trợ lý AI quản lý chi tiêu của bạn.\n\nHãy hỏi tôi bất cứ điều gì về tài chính cá nhân.',
-      time: new Date(),
-    }
-  ]);
+  const [messages, setMessages] = useState([WELCOME_MSG]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [guideVisible, setGuideVisible] = useState(false);
   const flatListRef = useRef(null);
-
   const [clearing, setClearing] = useState(false);
+
+  // Load lịch sử hội thoại từ server khi mở màn hình
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await aiAPI.getHistory();
+        const history = res.data.messages;
+        if (history.length > 0) {
+          setMessages(history.map(m => ({
+            id: String(m.id),
+            role: m.role === 'model' ? 'ai' : 'user',
+            text: m.text,
+            time: new Date(m.time),
+          })));
+        }
+      } catch {
+        // Không load được lịch sử → giữ welcome message
+      } finally {
+        setLoadingHistory(false);
+      }
+    })();
+  }, []);
 
   const clearChat = async () => {
     if (clearing) return;
@@ -122,6 +144,15 @@ export default function AIChatScreen() {
     );
   };
 
+  if (loadingHistory) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Đang tải lịch sử...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Minimal Header */}
@@ -209,6 +240,8 @@ export default function AIChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centerContent: { justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { fontSize: 14 },
   header: { paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 0.5 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerSub: { fontSize: 13, marginBottom: 2, fontWeight: '500' },

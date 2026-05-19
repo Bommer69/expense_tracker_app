@@ -172,15 +172,36 @@ async function advice(req, res) {
   }
 }
 
+async function getChatHistory(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    const ChatMessage = require('../models/ChatMessage');
+    const msgs = await ChatMessage.find({ userId })
+      .sort({ createdAt: 1 })
+      .limit(100);
+    res.json({
+      messages: msgs.map(m => ({
+        id: m._id,
+        role: m.role,
+        text: m.text,
+        time: m.createdAt,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 async function clearHistory(req, res) {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    clearUserMemory(userId);
+    await clearUserMemory(userId);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
 
-module.exports = { chat, getStats, advice, clearHistory };
+module.exports = { chat, getStats, advice, getChatHistory, clearHistory };
