@@ -142,7 +142,7 @@ export default function TransactionsScreen() {
       description: tx.description || '',
       type: tx.type,
     });
-    setSelectedCategory(tx.categoryId || null);
+    setSelectedCategory(tx.categoryId && typeof tx.categoryId === 'object' ? tx.categoryId : null);
     setSelectedDate(new Date(tx.date));
     setEditingTx(tx);
     setPickerMonth(new Date(tx.date));
@@ -295,7 +295,7 @@ export default function TransactionsScreen() {
   const renderItem = ({ item }) => (
     <Swipeable renderRightActions={() => renderRightActions(item)} overshootRight={false}>
       <View style={[s.txItem, { borderBottomColor: theme.border + '60', backgroundColor: theme.background }]}>
-        <View style={[s.txIcon, { backgroundColor: item.type === 'income' ? theme.success + '12' : item.type === 'expense' ? theme.error + '12' : theme.error + '12' }]}>
+        <View style={[s.txIcon, { backgroundColor: item.type === 'income' ? theme.success + '12' : theme.error + '12' }]}>
           <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'card-outline'} size={18} color={item.type === 'income' ? theme.success : theme.error} />
         </View>
         <View style={s.txMid}>
