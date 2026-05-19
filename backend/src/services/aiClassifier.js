@@ -1,59 +1,49 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
-const { HumanMessage, AIMessage, SystemMessage } = require('@langchain/core/messages');
 
-// --- Raw Gemini model (for classify + advice) ---
 let genAI = null;
 let model = null;
 
-function getModel() {
-  if (!model) {
+function getGenAI() {
+  if (!genAI) {
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
     if (!apiKey || apiKey === 'your-gemini-api-key-here') return null;
     genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  }
+  return genAI;
+}
+
+function getModel() {
+  if (!model) {
+    const ai = getGenAI();
+    if (!ai) return null;
+    model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
   }
   return model;
 }
 
-// --- LangChain chat model + per-user history ---
-let chatModel = null;
-
-function getChatModel() {
-  if (!chatModel) {
-    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-    if (!apiKey || apiKey === 'your-gemini-api-key-here') return null;
-    chatModel = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.5-flash',
-      apiKey,
-      maxOutputTokens: 512,
-    });
-  }
-  return chatModel;
-}
-
-// userId → HumanMessage|AIMessage[]
+// userId(string) → [{role:'user'|'model', parts:[{text:string}]}]
 const userHistories = new Map();
-
 const MAX_HISTORY = 20; // 10 exchanges
 
 function getHistory(userId) {
-  if (!userHistories.has(userId)) userHistories.set(userId, []);
-  return userHistories.get(userId);
+  const key = String(userId);
+  if (!userHistories.has(key)) userHistories.set(key, []);
+  return userHistories.get(key);
 }
 
 function clearUserMemory(userId) {
-  userHistories.delete(userId);
+  userHistories.delete(String(userId));
 }
 
 /**
  * Chat with AI about expenses — maintains conversation history per user
+ * Uses native Gemini startChat({ history }) for reliable multi-turn context
  */
 async function chatWithAI(message, context, userId) {
-  const llm = getChatModel();
-  if (!llm) throw new Error('GEMINI_API_KEY chưa được cấu hình');
+  const ai = getGenAI();
+  if (!ai) throw new Error('GEMINI_API_KEY chưa được cấu hình');
 
-  const systemText = `Bạn là "Trợ lý Chi tiêu Thông minh" - một AI chuyên về quản lý tài chính cá nhân.
+  const systemInstruction = `Bạn là "Trợ lý Chi tiêu Thông minh" - một AI chuyên về quản lý tài chính cá nhân.
 Hãy trả lời bằng tiếng Việt, thân thiện, ngắn gọn (tối đa 150 từ).
 Sử dụng emoji phù hợp để câu trả lời sinh động hơn.
 
@@ -66,20 +56,15 @@ Lưu ý:
 - Nếu không đủ dữ liệu, hãy nói rõ và gợi ý thêm giao dịch
 - Đơn vị tiền tệ là VND`;
 
+  const chatGemini = ai.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction });
   const history = getHistory(userId);
 
-  const messages = [
-    new SystemMessage(systemText),
-    ...history,
-    new HumanMessage(message),
-  ];
+  const chat = chatGemini.startChat({ history: [...history] });
+  const result = await chat.sendMessage(message);
+  const replyText = result.response.text();
 
-  const response = await llm.invoke(messages);
-  const replyText = response.content;
-
-  // Append to history and trim
-  history.push(new HumanMessage(message));
-  history.push(new AIMessage(replyText));
+  history.push({ role: 'user', parts: [{ text: message }] });
+  history.push({ role: 'model', parts: [{ text: replyText }] });
   if (history.length > MAX_HISTORY) {
     history.splice(0, history.length - MAX_HISTORY);
   }
