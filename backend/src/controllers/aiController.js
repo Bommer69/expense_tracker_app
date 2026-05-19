@@ -83,16 +83,13 @@ async function chat(req, res) {
       return res.status(400).json({ error: 'Vui lòng nhập câu hỏi' });
     }
     
-    const context = await buildContext(userId);
-    
     let answer;
     try {
-      answer = await chatWithAI(message, context.text, userId);
+      answer = await chatWithAI(message, userId);
     } catch (err) {
       console.error('AI chat error:', err.message);
       const errorText = String(err.message || '');
-      
-      // Smart fallback based on user data
+
       if (errorText.includes('GEMINI_API_KEY')) {
         answer = '⚠️ Chưa cấu hình API Key cho AI. Vui lòng thêm GEMINI_API_KEY vào file .env.\n\nLấy API key miễn phí tại: https://aistudio.google.com/apikey';
       } else if (
@@ -100,23 +97,20 @@ async function chat(req, res) {
         errorText.includes('API Key not found') ||
         errorText.includes('reported as leaked')
       ) {
-        answer = '⚠️ API key Gemini không hợp lệ hoặc đã bị thu hồi do lộ key.\n\nVui lòng tạo key mới tại https://aistudio.google.com/apikey, cập nhật GEMINI_API_KEY trong backend/.env và khởi động lại backend.';
+        answer = '⚠️ API key Gemini không hợp lệ hoặc đã bị thu hồi.\n\nVui lòng tạo key mới tại https://aistudio.google.com/apikey và cập nhật GEMINI_API_KEY trong backend/.env.';
       } else if (
         errorText.includes('RESOURCE_EXHAUSTED') ||
         errorText.includes('Quota exceeded') ||
         errorText.includes('rate-limit') ||
         errorText.includes('free_tier')
       ) {
-        answer = '⚠️ API key đã hết quota miễn phí.\n\nVui lòng lấy key mới tại https://aistudio.google.com/apikey (chọn "Create API key" — miễn phí), cập nhật GEMINI_API_KEY trong backend/.env và khởi động lại backend.';
+        answer = '⚠️ API key đã hết quota miễn phí.\n\nVui lòng lấy key mới tại https://aistudio.google.com/apikey và cập nhật GEMINI_API_KEY trong backend/.env.';
       } else {
-        answer = `🤖 Xin lỗi, AI tạm thời không khả dụng.\n\n📊 Tóm tắt nhanh tháng này:\n- Thu nhập: ${context.stats.totalIncome.toLocaleString()} VND\n- Chi tiêu: ${context.stats.totalExpense.toLocaleString()} VND\n- Số giao dịch: ${context.stats.transactionCount}`;
+        answer = '🤖 Xin lỗi, AI tạm thời không khả dụng. Vui lòng thử lại sau.';
       }
     }
-    
-    res.json({ 
-      answer, 
-      context: context.stats
-    });
+
+    res.json({ answer });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
