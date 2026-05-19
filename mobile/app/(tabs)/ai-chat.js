@@ -27,6 +27,26 @@ export default function AIChatScreen() {
   const [guideVisible, setGuideVisible] = useState(false);
   const flatListRef = useRef(null);
 
+  const [clearing, setClearing] = useState(false);
+
+  const clearChat = async () => {
+    if (clearing) return;
+    setClearing(true);
+    try {
+      await aiAPI.clearHistory();
+    } catch {
+      // Best-effort — clear local messages regardless of API result
+    } finally {
+      setClearing(false);
+    }
+    setMessages([{
+      id: 'welcome',
+      role: 'ai',
+      text: 'Xin chào! Tôi là trợ lý AI quản lý chi tiêu của bạn.\n\nHãy hỏi tôi bất cứ điều gì về tài chính cá nhân.',
+      time: new Date(),
+    }]);
+  };
+
   const sendMessage = async (text) => {
     const messageText = text || inputText.trim();
     if (!messageText || loading) return;
@@ -111,9 +131,14 @@ export default function AIChatScreen() {
             <Text style={[styles.headerSub, { color: theme.textSecondary }]}>Trợ lý AI</Text>
             <Text style={[styles.headerTitle, { color: theme.text }]}>Chatbot</Text>
           </View>
-          <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
-            <Ionicons name="book-outline" size={24} color="#6B7194" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={clearChat} style={styles.infoBtn} disabled={clearing}>
+              <Ionicons name="trash-outline" size={22} color={clearing ? theme.textSecondary : theme.error} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
+              <Ionicons name="book-outline" size={24} color="#6B7194" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -189,6 +214,7 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 13, marginBottom: 2, fontWeight: '500' },
   headerTitle: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   infoBtn: { padding: 4 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   chatArea: { flex: 1 },
   messagesList: { padding: 16, paddingBottom: 8 },
   msgRow: { flexDirection: 'row', marginBottom: 16, alignItems: 'flex-end' },
