@@ -4,6 +4,7 @@ import { ThemeProvider } from '../src/context/ThemeContext';
 import { AuthProvider, AuthContext } from '../src/context/AuthContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useContext } from 'react';
+import api from '../src/services/api';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function RootLayoutNav() {
@@ -42,6 +43,11 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    // Ping server để wake up Render free tier khi mở app
+    api.get('/health').catch(() => {});
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>

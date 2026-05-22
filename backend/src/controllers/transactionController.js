@@ -29,6 +29,9 @@ async function getAll(req, res) {
     
     res.json(transactions);
   } catch (err) {
+    // generateRecurringTransactions race condition lỗi đã được xử lý bên trong,
+    // nhưng nếu vẫn throw thì log ra để debug
+    console.error('[Transaction.getAll] error:', err.message);
     res.status(500).json({ error: err.message });
   }
 }
@@ -88,6 +91,14 @@ async function create(req, res) {
     await transaction.populate('categoryId');
     res.json(transaction);
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      const msg = Object.values(err.errors).map(e => e.message).join(', ');
+      return res.status(400).json({ error: msg });
+    }
+    if (err.name === 'CastError') {
+      return res.status(400).json({ error: 'Dữ liệu không hợp lệ: ' + err.message });
+    }
+    console.error('[Transaction.create] error:', err.message);
     res.status(500).json({ error: err.message });
   }
 }

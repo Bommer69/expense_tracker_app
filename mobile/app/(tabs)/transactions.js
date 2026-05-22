@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
 import { Ionicons } from '@expo/vector-icons';
+import { getErrorMessage } from '../../src/utils/errorHandler';
 import { Swipeable } from 'react-native-gesture-handler';
 
 const ICONS = [
@@ -168,8 +169,9 @@ export default function TransactionsScreen() {
         await createTransaction(payload);
       }
       closeModal();
-    } catch {
-      Alert.alert('Lỗi', editingTx ? 'Không thể cập nhật giao dịch' : 'Không thể tạo giao dịch');
+    } catch (err) {
+      const fallback = editingTx ? 'Không thể cập nhật giao dịch' : 'Không thể tạo giao dịch';
+      Alert.alert('Lỗi', getErrorMessage(err) || fallback);
     } finally { setSubmitting(false); }
   };
 
@@ -180,7 +182,7 @@ export default function TransactionsScreen() {
       setSelectedCategory(created);
       setCatModalVisible(false);
       setNewCat({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
-    } catch { Alert.alert('Lỗi', 'Không thể tạo danh mục'); }
+    } catch (err) { Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể tạo danh mục'); }
   };
 
   const handleDelete = (tx) => {
@@ -209,9 +211,10 @@ export default function TransactionsScreen() {
         await deleteCategory(deleteTarget.item._id);
         if (selectedCategory?._id === deleteTarget.item._id) setSelectedCategory(null);
       }
-    } catch {
-      if (Platform.OS === 'web') alert('Không thể xóa mục này');
-      else Alert.alert('Lỗi', 'Không thể xóa mục này');
+    } catch (err) {
+      const msg = getErrorMessage(err) || 'Không thể xóa mục này';
+      if (Platform.OS === 'web') alert(msg);
+      else Alert.alert('Lỗi', msg);
     } finally {
       setDeleteTarget(null);
     }
@@ -241,8 +244,8 @@ export default function TransactionsScreen() {
       });
       setRecurringForm({ amount: '', description: '', type: 'expense', frequency: 'monthly', categoryId: '' });
       await fetchTransactions();
-    } catch {
-      Alert.alert('Lỗi', 'Không thể tạo giao dịch định kỳ');
+    } catch (err) {
+      Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể tạo giao dịch định kỳ');
     }
   };
 
@@ -250,8 +253,8 @@ export default function TransactionsScreen() {
     try {
       await removeRecurring(item._id);
       await fetchTransactions();
-    } catch {
-      Alert.alert('Lỗi', 'Không thể xóa giao dịch định kỳ');
+    } catch (err) {
+      Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể xóa giao dịch định kỳ');
     }
   };
 

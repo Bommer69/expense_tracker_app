@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     console.log('[AuthContext] Login attempt for:', email);
     try {
       const response = await axios.post(`${API_URL}/auth/login`, { email, password }, {
-        timeout: 10000, // 10 second timeout
+        timeout: 60000,
       });
       const { token: newToken, user: userData } = response.data;
       console.log('[AuthContext] Login successful for:', email);
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     console.log('[AuthContext] Register attempt for:', email);
     try {
       const response = await axios.post(`${API_URL}/auth/register`, { email, password, name }, {
-        timeout: 10000, // 10 second timeout
+        timeout: 60000,
       });
       const { token: newToken, user: userData } = response.data;
       console.log('[AuthContext] Register successful for:', email);

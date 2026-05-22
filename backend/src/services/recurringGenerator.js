@@ -93,8 +93,7 @@ async function generateRecurringTransactions(userId, upTo = new Date()) {
 
     while (cursor <= upToDay && (!endDate || cursor <= endDate)) {
       const recurringKey = `${recurring._id}:${formatDateKey(cursor)}`;
-      const exists = await Transaction.findOne({ userId, recurringKey }).select('_id');
-      if (!exists) {
+      try {
         await Transaction.create({
           userId,
           accountId: recurring.accountId,
@@ -107,6 +106,9 @@ async function generateRecurringTransactions(userId, upTo = new Date()) {
           recurringKey
         });
         generatedCount += 1;
+      } catch (err) {
+        // E11000 = duplicate key: concurrent requests raced to insert same recurringKey
+        if (err.code !== 11000) throw err;
       }
       recurring.lastGeneratedAt = cursor;
       cursor = nextDateFrom(cursor, recurring, schedule);

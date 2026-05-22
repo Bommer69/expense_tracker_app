@@ -20,6 +20,9 @@ const transactionSchema = new mongoose.Schema({
 // Index for query performance
 transactionSchema.index({ userId: 1, date: -1 });
 transactionSchema.index({ userId: 1, categoryId: 1 });
-transactionSchema.index({ userId: 1, recurringKey: 1 }, { unique: true, sparse: true });
+transactionSchema.index(
+  { userId: 1, recurringKey: 1 },
+  { unique: true, partialFilterExpression: { recurringKey: { $type: 'string' } } }
+);
 
 module.exports = mongoose.model('Transaction', transactionSchema);

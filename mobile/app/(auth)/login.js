@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { getErrorMessage } from '../../src/utils/errorHandler';
 
 const { width, height } = Dimensions.get('window');
 
@@ -67,12 +68,7 @@ export default function LoginScreen() {
       else { await register(email.trim(), password, name.trim()); }
       router.replace('/(tabs)');
     } catch (err) {
-      const msg =
-        err?.error ||
-        err?.message ||
-        err?.response?.data?.error ||
-        'Đã xảy ra lỗi. Vui lòng thử lại.';
-      Alert.alert('Lỗi', msg);
+      Alert.alert('Lỗi', getErrorMessage(err));
     } finally { setLoading(false); }
   };
 

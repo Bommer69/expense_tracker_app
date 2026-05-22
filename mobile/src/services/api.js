@@ -5,7 +5,7 @@ import { API_URL } from '../constants/api';
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 60000, // Render free tier cần 30-60s để wake up
   headers: {
     'Content-Type': 'application/json',
   },

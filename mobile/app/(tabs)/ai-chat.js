@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { aiAPI } from '../../src/services/api';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { Ionicons } from '@expo/vector-icons';
+import { getErrorMessage } from '../../src/utils/errorHandler';
 
 const QUICK_PROMPTS = [
   { iconName: 'wallet', text: 'Tôi chi tiêu thế nào tháng này?' },
@@ -98,7 +99,7 @@ export default function AIChatScreen() {
       const errorMsg = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        text: 'Không thể kết nối AI. Vui lòng kiểm tra backend và GEMINI_API_KEY.',
+        text: getErrorMessage(err) || 'Không thể kết nối AI. Vui lòng thử lại.',
         time: new Date(),
         isError: true,
       };

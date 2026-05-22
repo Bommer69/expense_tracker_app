@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
 import { Ionicons } from '@expo/vector-icons';
+import { getErrorMessage } from '../../src/utils/errorHandler';
 
 const ICONS = [
   { name: 'restaurant-outline', display: '🍔' },
@@ -114,7 +115,7 @@ export default function BudgetScreen() {
       await createBudget({ categoryId: selectedCategory._id, amount, month: formData.month });
       setModalVisible(false); setFormData({ amount: '', month: getCurrentMonth() }); setSelectedCategory(null);
       setViewMonth(formData.month);
-    } catch { Alert.alert('Lỗi', 'Không thể tạo ngân sách'); } finally { setSubmitting(false); }
+    } catch (err) { Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể tạo ngân sách'); } finally { setSubmitting(false); }
   };
 
   const handleCreateCategory = async () => {
@@ -124,7 +125,7 @@ export default function BudgetScreen() {
       setSelectedCategory(created);
       setCatModalVisible(false);
       setNewCat({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
-    } catch { Alert.alert('Lỗi', 'Không thể tạo danh mục'); }
+    } catch (err) { Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể tạo danh mục'); }
   };
 
   const handleDeleteCategory = (cat) => {
@@ -153,9 +154,10 @@ export default function BudgetScreen() {
         await deleteCategory(deleteTarget.item._id);
         if (selectedCategory?._id === deleteTarget.item._id) setSelectedCategory(null);
       }
-    } catch {
-      if (Platform.OS === 'web') alert('Không thể xóa mục này');
-      else Alert.alert('Lỗi', 'Không thể xóa mục này');
+    } catch (err) {
+      const msg = getErrorMessage(err) || 'Không thể xóa mục này';
+      if (Platform.OS === 'web') alert(msg);
+      else Alert.alert('Lỗi', msg);
     } finally {
       setDeleteTarget(null);
     }
