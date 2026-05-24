@@ -25,10 +25,13 @@ async function create(req, res) {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    
+
     const category = await Category.create({ ...req.body, userId });
     res.json(category);
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
     res.status(500).json({ error: err.message });
   }
 }

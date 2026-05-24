@@ -29,6 +29,7 @@ const resolveApiUrl = () => {
 };
 
 export const API_URL = resolveApiUrl();
+console.log('API_URL resolved to:', API_URL); // Tạm thời để debug
 
 export const API_ENDPOINTS = {
   // Auth

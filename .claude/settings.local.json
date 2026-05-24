@@ -18,7 +18,12 @@
       "Bash(git push *)",
       "WebFetch(domain:expense-tracker-app-ee14.onrender.com)",
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\OS\\\\OneDrive\\\\Documents\\\\expense-tracker\\\\backend\\\\src\\\\controllers\" | ForEach-Object { $_.Name })",
-      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:3000/api/health\" -Method GET | ConvertTo-Json)"
+      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:3000/api/health\" -Method GET | ConvertTo-Json)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\OS\\\\OneDrive\\\\Documents\\\\expense-tracker\" -Force)",
+      "Bash(Select-Object Name, FullName, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(nslookup cluster0.xgvl2cs.mongodb.net)",
+      "Bash(nslookup *)"
     ]
   }
 }
