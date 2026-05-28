@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity,
   Alert, KeyboardAvoidingView, Platform, ScrollView,
   Animated, Dimensions, StatusBar
 } from 'react-native';
@@ -9,6 +9,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { getErrorMessage } from '../../src/utils/errorHandler';
+import { loginStyles as styles, obStyles } from '../../src/styles/loginStyles';
 
 const { width, height } = Dimensions.get('window');
 
@@ -205,51 +206,3 @@ function OnboardingInline({ onFinish }) {
   );
 }
 
-const obStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FE' },
-  bgCircle1: { position: 'absolute', top: -100, right: -100, width: 300, height: 300, borderRadius: 150, backgroundColor: '#6C5CE720' },
-  skipBtn: { position: 'absolute', top: 60, right: 24, zIndex: 10, padding: 8 },
-  skipText: { fontSize: 16, color: '#6B7194', fontWeight: '500' },
-  content: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  iconCircle: { width: 140, height: 140, borderRadius: 70, backgroundColor: '#6C5CE720', justifyContent: 'center', alignItems: 'center', marginBottom: 32 },
-  title: { fontSize: 32, fontWeight: '800', color: '#1A1D2E', marginBottom: 16, textAlign: 'center' },
-  desc: { fontSize: 17, color: '#6B7194', textAlign: 'center', lineHeight: 26 },
-  footer: { paddingHorizontal: 24, paddingBottom: 50 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E8ECF4' },
-  dotActive: { width: 28, backgroundColor: '#6C5CE7' },
-  nextBtn: { backgroundColor: '#6C5CE7', padding: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#6C5CE7', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 8 },
-  nextText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
-});
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1A1D2E', overflow: 'hidden' },
-  bgCircle1: { position: 'absolute', top: -120, right: -80, width: 300, height: 300, borderRadius: 150, backgroundColor: '#6C5CE730' },
-  bgCircle2: { position: 'absolute', top: height * 0.15, left: -100, width: 250, height: 250, borderRadius: 125, backgroundColor: '#A29BFE15' },
-  bgCircle3: { position: 'absolute', bottom: -80, right: -60, width: 220, height: 220, borderRadius: 110, backgroundColor: '#00CECE10' },
-  keyboardView: { flex: 1 },
-  scrollView: { backgroundColor: '#1A1D2E' },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 36 },
-  logoContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#6C5CE720', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  appName: { fontSize: 32, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5, marginBottom: 8 },
-  tagline: { fontSize: 16, color: '#A0A5C0', textAlign: 'center', lineHeight: 24 },
-  formCard: { backgroundColor: '#FFFFFF10', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: '#FFFFFF15', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 24, elevation: 10 },
-  toggleContainer: { flexDirection: 'row', backgroundColor: '#FFFFFF08', borderRadius: 14, padding: 4, marginBottom: 24 },
-  toggleBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12 },
-  toggleBtnActive: { backgroundColor: '#6C5CE7', shadowColor: '#6C5CE7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 },
-  toggleText: { fontSize: 15, fontWeight: '600', color: '#A0A5C0' },
-  toggleTextActive: { color: '#FFFFFF' },
-  inputGroup: { marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: '600', color: '#FFFFFFCC', marginBottom: 8, marginLeft: 4, letterSpacing: 0.5, textTransform: 'uppercase' },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF12', borderRadius: 14, borderWidth: 1, borderColor: '#FFFFFF18', paddingHorizontal: 16 },
-  inputIcon: { marginRight: 12 },
-  input: { flex: 1, paddingVertical: 16, fontSize: 16, color: '#FFFFFF' },
-  eyeBtn: { padding: 8 },
-  submitBtn: { backgroundColor: '#6C5CE7', paddingVertical: 18, borderRadius: 16, alignItems: 'center', marginTop: 8, shadowColor: '#6C5CE7', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
-  submitBtnDisabled: { backgroundColor: '#6C5CE780', shadowOpacity: 0.1 },
-  submitBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', letterSpacing: 0.5 },
-  switchContainer: { marginTop: 24, alignItems: 'center' },
-  switchText: { fontSize: 15, color: '#A0A5C0' },
-  switchAction: { color: '#A29BFE', fontWeight: '700' },
-});

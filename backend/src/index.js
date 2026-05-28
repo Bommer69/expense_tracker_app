@@ -17,6 +17,10 @@ const savingsGoalRoutes = require('./routes/savingsGoals');
 const recurringTransactionRoutes = require('./routes/recurringTransactions');
 
 const app = express();
+
+// Trust proxy (Render, Railway, Vercel, Nginx, ...)
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 3000;
 
 // Security middleware

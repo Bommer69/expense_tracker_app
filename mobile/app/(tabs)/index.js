@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAccounts } from '../../src/hooks/useAccounts';
 import { useTransactions, useTransactionSummary } from '../../src/hooks/useTransactions';
 import { formatCurrency, getMonthName, getCurrentMonth } from '../../src/utils/formatters';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../src/hooks/useAuth';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
+import { homeStyles as styles } from '../../src/styles/homeStyles';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
@@ -21,6 +22,14 @@ export default function HomeScreen() {
 
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
   const loading = aL || tL || sL;
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchTransactions();
+      fetchAccounts();
+      fetchSummary();
+    }, [fetchTransactions, fetchAccounts, fetchSummary])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -153,44 +162,3 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 0.5 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  greeting: { fontSize: 13, marginBottom: 2, fontWeight: '500' },
-  userName: { fontSize: 24, fontWeight: '700', letterSpacing: -0.5 },
-  infoBtn: { padding: 4 },
-  scrollContent: { paddingBottom: 100 },
-  balanceCard: { margin: 20, borderRadius: 20, padding: 20, borderWidth: 1 },
-  balanceHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  balanceLabel: { fontSize: 13, fontWeight: '600' },
-  monthBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, fontSize: 11, fontWeight: '600', overflow: 'hidden' },
-  balanceAmount: { fontSize: 36, fontWeight: '800', marginBottom: 20, letterSpacing: -1 },
-  balanceRow: { flexDirection: 'row', alignItems: 'center' },
-  balanceMini: { flex: 1 },
-  divider: { width: 1, height: 24, marginHorizontal: 16 },
-  balanceMiniLabel: { fontSize: 12, marginBottom: 4 },
-  balanceMiniAmount: { fontSize: 15, fontWeight: '700' },
-  quickActions: { flexDirection: 'row', paddingHorizontal: 20, gap: 10, marginBottom: 10 },
-  quickBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 16, borderWidth: 1 },
-  quickIcon: { marginBottom: 8 },
-  quickLabel: { fontSize: 12, fontWeight: '600' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginTop: 24, marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '700' },
-  seeAll: { fontSize: 13, fontWeight: '600' },
-  txList: { paddingHorizontal: 20 },
-  txItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5 },
-  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
-  txIconBg: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  txIcon: { fontSize: 20 },
-  txDesc: { fontSize: 15, fontWeight: '500', marginBottom: 2 },
-  txCat: { fontSize: 12 },
-  txAmount: { fontSize: 15, fontWeight: '600' },
-  emptyText: { textAlign: 'center', padding: 20 },
-  accountsScroll: { paddingLeft: 20 },
-  accountCard: { width: 150, padding: 16, borderRadius: 16, marginRight: 12, borderWidth: 1 },
-  accTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  accIcon: { fontSize: 20 },
-  accName: { fontSize: 13, fontWeight: '500' },
-  accBalance: { fontSize: 16, fontWeight: '700' },
-});

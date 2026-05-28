@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Switch, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -8,6 +8,7 @@ import { formatCurrency } from '../../src/utils/formatters';
 import { useState } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { Ionicons } from '@expo/vector-icons';
+import { profileStyles as styles } from '../../src/styles/profileStyles';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -127,32 +128,3 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 0.5 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  infoBtn: { padding: 4 },
-  scrollContent: { padding: 20, paddingBottom: 100 },
-  profileCard: { alignItems: 'center', padding: 30, borderRadius: 16, marginBottom: 20, borderWidth: 1 },
-  avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  avatarText: { fontSize: 32, fontWeight: '700' },
-  userName: { fontSize: 20, fontWeight: '600', marginBottom: 4 },
-  userEmail: { fontSize: 14 },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
-  statCard: { flex: 1, padding: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1 },
-  statIcon: { fontSize: 20, marginBottom: 8 },
-  statLabel: { fontSize: 11, marginBottom: 4, textAlign: 'center', fontWeight: '500' },
-  statValue: { fontSize: 14, fontWeight: '700', textAlign: 'center' },
-  sectionTitle: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, marginLeft: 4 },
-  settingsCard: { borderRadius: 16, marginBottom: 30, borderWidth: 1 },
-  settingItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  settingIconBg: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  settingIcon: { fontSize: 16 },
-  settingLabel: { fontSize: 15, fontWeight: '500' },
-  dividerLine: { height: 0.5, marginLeft: 62 },
-  logoutBtn: { padding: 16, borderRadius: 14, alignItems: 'center', borderWidth: 1 },
-  logoutText: { fontSize: 15, fontWeight: '600' },
-  version: { textAlign: 'center', fontSize: 12, marginTop: 24 },
-});

@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
-import { StyleSheet, View, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { tabLayoutStyles as styles } from '../../src/styles/tabLayoutStyles';
 
 export default function TabLayout() {
   const { theme } = useTheme();
@@ -100,16 +101,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  iconContainer: {
-    width: 36,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  icon: {
-    fontSize: 18,
-  },
-});

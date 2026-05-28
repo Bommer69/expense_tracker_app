@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Modal, TextInput, Alert, FlatList, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, Modal, TextInput, Alert, FlatList, ActivityIndicator, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useTransactions } from '../../src/hooks/useTransactions';
@@ -11,6 +11,7 @@ import { ConfirmModal } from '../../src/components/ConfirmModal';
 import { Ionicons } from '@expo/vector-icons';
 import { getErrorMessage } from '../../src/utils/errorHandler';
 import { Swipeable } from 'react-native-gesture-handler';
+import { transactionStyles as s } from '../../src/styles/transactionStyles';
 
 const ICONS = [
   { name: 'restaurant-outline', display: '🍔' },
@@ -298,16 +299,25 @@ export default function TransactionsScreen() {
   const renderItem = ({ item }) => (
     <Swipeable renderRightActions={() => renderRightActions(item)} overshootRight={false}>
       <View style={[s.txItem, { borderBottomColor: theme.border + '60', backgroundColor: theme.background }]}>
-        <View style={[s.txIcon, { backgroundColor: item.type === 'income' ? theme.success + '12' : theme.error + '12' }]}>
+        <TouchableOpacity
+          style={[s.txIcon, { backgroundColor: item.type === 'income' ? theme.success + '12' : theme.error + '12' }]}
+          onLongPress={() => handleDelete(item)}
+          delayLongPress={600}
+        >
           <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'card-outline'} size={18} color={item.type === 'income' ? theme.success : theme.error} />
-        </View>
-        <View style={s.txMid}>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.txMid} onLongPress={() => handleDelete(item)} delayLongPress={600}>
           <Text style={[s.txDesc, { color: theme.text }]} numberOfLines={1}>{item.description || item.categoryId?.name || 'Giao dịch'}</Text>
           <Text style={[s.txDate, { color: theme.textSecondary }]}>{formatDateShort(item.date)}{item.categoryId?.name ? ` · ${item.categoryId.name}` : ''}</Text>
+        </TouchableOpacity>
+        <View style={s.txRight}>
+          <Text style={[s.txAmt, { color: item.type === 'income' ? theme.success : theme.error }]}>
+            {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
+          </Text>
+          <TouchableOpacity onPress={() => handleDelete(item)} style={s.deleteIconBtn}>
+            <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
+          </TouchableOpacity>
         </View>
-        <Text style={[s.txAmt, { color: item.type === 'income' ? theme.success : theme.error }]}>
-          {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
-        </Text>
       </View>
     </Swipeable>
   );
@@ -592,70 +602,3 @@ export default function TransactionsScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 0.5 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  infoBtn: { padding: 4 },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 16 },
-  summaryItem: {},
-  summaryLabel: { fontSize: 12, marginBottom: 2 },
-  summaryVal: { fontSize: 15, fontWeight: '700' },
-  summaryDot: { width: 3, height: 3, borderRadius: 2 },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 12, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
-  searchInput: { flex: 1, fontSize: 14, marginLeft: 8, paddingVertical: 0 },
-  filterRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 4, gap: 8 },
-  filterBtn: { paddingVertical: 7, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1 },
-  filterText: { fontSize: 13, fontWeight: '500' },
-  listContent: { paddingHorizontal: 20, paddingBottom: 100 },
-  txItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5 },
-  txIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  txMid: { flex: 1 },
-  txDesc: { fontSize: 15, fontWeight: '500', marginBottom: 2 },
-  txDate: { fontSize: 12 },
-  txAmt: { fontSize: 15, fontWeight: '600' },
-  txRight: { alignItems: 'flex-end', justifyContent: 'center' },
-  deleteBtn: { padding: 4, marginTop: -2 },
-  swipeActions: { flexDirection: 'row', alignItems: 'stretch' },
-  swipeBtn: { width: 72, justifyContent: 'center', alignItems: 'center', gap: 4, paddingVertical: 14 },
-  swipeBtnText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 15 },
-  fab: { position: 'absolute', bottom: 90, right: 20, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
-  fabText: { fontSize: 28, color: '#fff', fontWeight: '300', marginTop: -1 },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modal: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: '88%' },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#D0D0D0', alignSelf: 'center', marginBottom: 12 },
-  modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '700' },
-  typeRow: { flexDirection: 'row', borderRadius: 12, padding: 3, marginBottom: 20, gap: 3 },
-  typeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-  typeText: { fontSize: 14, fontWeight: '600', color: '#888' },
-  amtRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  amtPrefix: { fontSize: 28, fontWeight: '700', marginRight: 6 },
-  amtInput: { flex: 1, fontSize: 32, fontWeight: '700' },
-  descInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, marginBottom: 16 },
-  sectionLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
-  dateBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 },
-  dateNav: { flexDirection: 'row', gap: 12 },
-  dateArrow: { paddingHorizontal: 8 },
-  calendarWrap: { borderWidth: 1, borderRadius: 16, padding: 12, marginBottom: 16, marginTop: -8 },
-  calHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 },
-  calDays: { flexDirection: 'row' },
-  calDayLabel: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '600', marginBottom: 6 },
-  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  calCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center' },
-  calDay: { fontSize: 14 },
-  catHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  catChip: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, gap: 6 },
-  catName: { fontSize: 13, fontWeight: '500' },
-  submitBtn: { paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 4 },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  catModal: { margin: 20, borderRadius: 20, padding: 20, marginTop: 'auto', marginBottom: 'auto' },
-  iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  iconBtn: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  catModalBtns: { flexDirection: 'row', gap: 10 },
-  catModalBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
-});

@@ -1,6 +1,7 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, FONT_SIZES } from '../constants/theme';
+import { headerStyles as styles } from '../styles/headerStyles';
 
 const Header = ({ title, showBack = false, rightComponent = null }) => {
   const router = useRouter();
@@ -18,29 +19,5 @@ const Header = ({ title, showBack = false, rightComponent = null }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.primary,
-    padding: SPACING.lg,
-    paddingTop: SPACING.xxl + 10,
-  },
-  backButton: {
-    marginBottom: SPACING.sm,
-  },
-  backText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.md,
-  },
-  title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
-  right: {
-    position: 'absolute',
-    right: SPACING.lg,
-    top: SPACING.xxl + 14,
-  },
-});
 
 export default Header;

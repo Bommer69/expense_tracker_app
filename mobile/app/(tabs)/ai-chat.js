@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useState, useRef, useEffect } from 'react';
 import { aiAPI } from '../../src/services/api';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { Ionicons } from '@expo/vector-icons';
 import { getErrorMessage } from '../../src/utils/errorHandler';
+import { aiChatStyles as styles } from '../../src/styles/aiChatStyles';
 
 const QUICK_PROMPTS = [
   { iconName: 'wallet', text: 'Tôi chi tiêu thế nào tháng này?' },
@@ -239,36 +240,3 @@ export default function AIChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centerContent: { justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14 },
-  header: { paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 0.5 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerSub: { fontSize: 13, marginBottom: 2, fontWeight: '500' },
-  headerTitle: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  infoBtn: { padding: 4 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  chatArea: { flex: 1 },
-  messagesList: { padding: 16, paddingBottom: 8 },
-  msgRow: { flexDirection: 'row', marginBottom: 16, alignItems: 'flex-end' },
-  msgRowUser: { justifyContent: 'flex-end' },
-  msgRowAI: { justifyContent: 'flex-start' },
-  avatarAI: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
-  avatarUser: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
-  msgBubble: { maxWidth: '75%', padding: 14, borderRadius: 20 },
-  msgBubbleUser: { borderBottomRightRadius: 4 },
-  msgBubbleAI: { borderBottomLeftRadius: 4 },
-  msgText: { fontSize: 15, lineHeight: 22 },
-  msgTime: { fontSize: 10, marginTop: 6, textAlign: 'right' },
-  typingBubble: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 20, borderBottomLeftRadius: 4 },
-  typingText: { fontSize: 13 },
-  quickPrompts: { paddingHorizontal: 16, paddingBottom: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  quickBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1 },
-  quickIcon: { marginRight: 4 },
-  quickText: { fontSize: 13, fontWeight: '500' },
-  inputArea: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, padding: 12, paddingBottom: Platform.OS === 'ios' ? 28 : 12, borderTopWidth: 0.5 },
-  textInput: { flex: 1, borderRadius: 20, borderWidth: 1, padding: 12, paddingTop: 12, fontSize: 15, maxHeight: 100, minHeight: 44 },
-  sendBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  sendIcon: { fontSize: 18, color: '#FFF' },
-});
