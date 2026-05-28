@@ -14,13 +14,15 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
-  const { accounts, loading: aL, fetchAccounts } = useAccounts();
+  const { accounts, loading: aL, fetchAccounts, getBalance } = useAccounts();
   const { transactions, loading: tL, fetchTransactions } = useTransactions(5);
   const { summary, loading: sL, fetchSummary } = useTransactionSummary();
   const [refreshing, setRefreshing] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
+  const [balanceAccounts, setBalanceAccounts] = useState([]);
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  // Sử dụng số dư tính từ giao dịch (thay vì balance tĩnh từ DB)
+  const totalBalance = balanceAccounts.reduce((sum, acc) => sum + (acc.calculatedBalance || 0), 0);
   const loading = aL || tL || sL;
 
   useFocusEffect(
@@ -30,6 +32,17 @@ export default function HomeScreen() {
       fetchSummary();
     }, [fetchTransactions, fetchAccounts, fetchSummary])
   );
+
+  // Khi accounts thay đổi, lấy số dư thực tế
+  useEffect(() => {
+    if (accounts.length > 0) {
+      getBalance()
+        .then(data => setBalanceAccounts(data || []))
+        .catch(() => setBalanceAccounts(accounts)); // fallback về accounts gốc
+    } else {
+      setBalanceAccounts([]);
+    }
+  }, [accounts]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -134,13 +147,13 @@ export default function HomeScreen() {
         {/* Accounts */}
         <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: theme.text }]}>Tài khoản</Text></View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.accountsScroll}>
-          {accounts.map(acc => (
+          {balanceAccounts.map(acc => (
             <View key={acc._id} style={[styles.accountCard, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]}>
               <View style={styles.accTop}>
                 <Ionicons name={acc.type === 'cash' ? 'cash-outline' : acc.type === 'bank' ? 'business-outline' : 'phone-portrait-outline'} size={20} color={theme.primary} />
                 <Text style={[styles.accName, { color: theme.textSecondary }]}>{acc.name}</Text>
               </View>
-              <Text style={[styles.accBalance, { color: theme.text }]}>{formatCurrency(acc.balance || 0)}</Text>
+              <Text style={[styles.accBalance, { color: theme.text }]}>{formatCurrency(acc.calculatedBalance || 0)}</Text>
             </View>
           ))}
           {/* Spacer for right margin */}

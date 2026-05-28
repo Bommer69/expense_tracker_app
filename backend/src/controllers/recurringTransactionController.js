@@ -1,4 +1,5 @@
 const RecurringTransaction = require('../models/RecurringTransaction');
+const Account = require('../models/Account');
 const { getUserId } = require('../utils/auth');
 const { generateRecurringTransactions } = require('../services/recurringGenerator');
 
@@ -22,8 +23,17 @@ async function create(req, res) {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
+    // Nếu không có accountId, gán vào tài khoản mặc định
+    const data = { ...req.body };
+    if (!data.accountId) {
+      const defaultAccount = await Account.findOne({ userId, isDefault: true });
+      if (defaultAccount) {
+        data.accountId = defaultAccount._id;
+      }
+    }
+
     const item = await RecurringTransaction.create({
-      ...req.body,
+      ...data,
       userId
     });
     await item.populate('categoryId');

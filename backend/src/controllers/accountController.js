@@ -85,9 +85,30 @@ async function getBalance(req, res) {
     
     const accounts = await Account.find({ userId });
     
+    // Tìm tài khoản mặc định để gộp các giao dịch legacy (không có accountId)
+    const defaultAccount = accounts.find(a => a.isDefault) || accounts[0];
+    
     // Calculate balances from transactions
     const balances = await Promise.all(accounts.map(async (account) => {
-      const transactions = await Transaction.find({ accountId: account._id });
+      let query;
+      const isDefault = defaultAccount && account._id.toString() === defaultAccount._id.toString();
+      
+      if (isDefault) {
+        // Tài khoản mặc định: gộp cả giao dịch cũ không có accountId
+        query = {
+          userId,
+          $or: [
+            { accountId: account._id },
+            { accountId: { $exists: false } },
+            { accountId: null }
+          ]
+        };
+      } else {
+        // Các tài khoản khác: chỉ lấy giao dịch gắn với tài khoản đó
+        query = { userId, accountId: account._id };
+      }
+      
+      const transactions = await Transaction.find(query);
       
       const income = transactions
         .filter(t => t.type === 'income')
