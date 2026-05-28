@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { transactionsAPI } from '../services/api';
+import { transactionsAPI } from '../api';
 import { getCurrentMonth } from '../utils/formatters';
 
 export const useTransactions = (limit = 50) => {

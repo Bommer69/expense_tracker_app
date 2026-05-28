@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { categoriesAPI } from '../services/api';
+import { categoriesAPI } from '../api';
 
 export const useCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -63,4 +63,4 @@ export const useCategories = () => {
   };
 };
 
-export default useCategories;
+export default useCategories;

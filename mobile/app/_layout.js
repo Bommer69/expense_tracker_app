@@ -4,7 +4,7 @@ import { ThemeProvider } from '../src/context/ThemeContext';
 import { AuthProvider, AuthContext } from '../src/context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { useContext } from 'react';
-import api from '../src/services/api';
+import { api } from '../src/api';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { layoutStyles as styles } from '../src/styles/layoutStyles';
 

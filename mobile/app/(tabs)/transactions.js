@@ -4,14 +4,16 @@ import { useTheme } from '../../src/hooks/useTheme';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useCategories } from '../../src/hooks/useCategories';
 import { useRecurringTransactions } from '../../src/hooks/useRecurringTransactions';
-import { formatCurrency, formatDateShort, formatNumberInput, parseFormattedNumber } from '../../src/utils/formatters';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { formatCurrency, formatNumberInput, parseFormattedNumber } from '../../src/utils/formatters';
+import { useState, useMemo, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
 import { Ionicons } from '@expo/vector-icons';
 import { getErrorMessage } from '../../src/utils/errorHandler';
-import { Swipeable } from 'react-native-gesture-handler';
 import { transactionStyles as s } from '../../src/styles/transactionStyles';
+import TransactionItem from '../../src/components/transactions/TransactionItem';
+import TransactionFilter from '../../src/components/transactions/TransactionFilter';
+import EmptyState from '../../src/components/ui/EmptyState';
 
 const ICONS = [
   { name: 'restaurant-outline', display: '🍔' },
@@ -277,49 +279,12 @@ export default function TransactionsScreen() {
   };
   const [pickerMonth, setPickerMonth] = useState(new Date());
 
-  const renderRightActions = (tx) => (
-    <View style={s.swipeActions}>
-      <TouchableOpacity
-        style={[s.swipeBtn, { backgroundColor: theme.primary }]}
-        onPress={() => handleEdit(tx)}
-      >
-        <Ionicons name="pencil-outline" size={18} color="#fff" />
-        <Text style={s.swipeBtnText}>Sửa</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[s.swipeBtn, { backgroundColor: theme.error }]}
-        onPress={() => handleDelete(tx)}
-      >
-        <Ionicons name="trash-outline" size={18} color="#fff" />
-        <Text style={s.swipeBtnText}>Xóa</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   const renderItem = ({ item }) => (
-    <Swipeable renderRightActions={() => renderRightActions(item)} overshootRight={false}>
-      <View style={[s.txItem, { borderBottomColor: theme.border + '60', backgroundColor: theme.background }]}>
-        <TouchableOpacity
-          style={[s.txIcon, { backgroundColor: item.type === 'income' ? theme.success + '12' : theme.error + '12' }]}
-          onLongPress={() => handleDelete(item)}
-          delayLongPress={600}
-        >
-          <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'card-outline'} size={18} color={item.type === 'income' ? theme.success : theme.error} />
-        </TouchableOpacity>
-        <TouchableOpacity style={s.txMid} onLongPress={() => handleDelete(item)} delayLongPress={600}>
-          <Text style={[s.txDesc, { color: theme.text }]} numberOfLines={1}>{item.description || item.categoryId?.name || 'Giao dịch'}</Text>
-          <Text style={[s.txDate, { color: theme.textSecondary }]}>{formatDateShort(item.date)}{item.categoryId?.name ? ` · ${item.categoryId.name}` : ''}</Text>
-        </TouchableOpacity>
-        <View style={s.txRight}>
-          <Text style={[s.txAmt, { color: item.type === 'income' ? theme.success : theme.error }]}>
-            {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
-          </Text>
-          <TouchableOpacity onPress={() => handleDelete(item)} style={s.deleteIconBtn}>
-            <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Swipeable>
+    <TransactionItem
+      item={item}
+      onEdit={handleEdit}
+      onDelete={handleDelete}
+    />
   );
 
   return (
@@ -350,26 +315,22 @@ export default function TransactionsScreen() {
         </View>
       </View>
 
-      {/* Search */}
-      <View style={[s.searchWrap, { backgroundColor: theme.surface, borderColor: theme.border + '50' }]}>
-        <Ionicons name="search-outline" size={14} color={theme.textSecondary} />
-        <TextInput style={[s.searchInput, { color: theme.text }]} placeholder="Tìm kiếm..." placeholderTextColor={theme.textSecondary} value={searchQuery} onChangeText={setSearchQuery} />
-        {searchQuery ? <TouchableOpacity onPress={() => setSearchQuery('')}><Ionicons name="close-circle" size={16} color={theme.textSecondary} /></TouchableOpacity> : null}
-      </View>
-
-      {/* Filters */}
-      <View style={s.filterRow}>
-        {[{ k: 'all', l: 'Tất cả' }, { k: 'income', l: 'Thu nhập' }, { k: 'expense', l: 'Chi tiêu' }].map(f => (
-          <TouchableOpacity key={f.k} style={[s.filterBtn, { borderColor: theme.border }, filterType === f.k && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setFilterType(f.k)}>
-            <Text style={[s.filterText, { color: theme.textSecondary }, filterType === f.k && { color: '#fff' }]}>{f.l}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <TransactionFilter
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        filterType={filterType}
+        onFilterChange={setFilterType}
+      />
 
       {/* List */}
       <FlatList data={filtered} renderItem={renderItem} keyExtractor={item => item._id} contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
-        ListEmptyComponent={<View style={s.empty}><Ionicons name="document-text-outline" size={40} color={theme.textSecondary} style={{ marginBottom: 8 }} /><Text style={[s.emptyText, { color: theme.textSecondary }]}>{searchQuery ? 'Không tìm thấy' : 'Chưa có giao dịch'}</Text></View>} />
+        ListEmptyComponent={
+          <EmptyState
+            icon="document-text-outline"
+            message={searchQuery ? 'Không tìm thấy' : 'Chưa có giao dịch'}
+          />
+        } />
 
       {/* FAB */}
       <TouchableOpacity style={[s.fab, { backgroundColor: theme.primary }]} onPress={() => setModalVisible(true)}>

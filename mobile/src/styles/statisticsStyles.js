@@ -53,6 +53,8 @@ export const statisticsStyles = StyleSheet.create({
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { fontSize: 12, color: '#888' },
   emptyCard: { borderRadius: 16, padding: 30, alignItems: 'center', marginBottom: 24, borderWidth: 1 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  emptyDesc: { fontSize: 13, fontWeight: '500', textAlign: 'center', lineHeight: 18 },
   emptyText: { fontSize: 14, fontWeight: '500' },
   modalOverlay: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.35)' },
   goalModal: { borderRadius: 16, padding: 16 },

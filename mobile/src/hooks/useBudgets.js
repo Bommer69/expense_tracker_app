@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { budgetsAPI } from '../services/api';
+import { budgetsAPI } from '../api';
 import { getCurrentMonth } from '../utils/formatters';
 
 export const useBudgets = () => {

@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useState, useRef, useEffect } from 'react';
-import { aiAPI } from '../../src/services/api';
+import { aiAPI } from '../../src/api';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { Ionicons } from '@expo/vector-icons';
 import { getErrorMessage } from '../../src/utils/errorHandler';

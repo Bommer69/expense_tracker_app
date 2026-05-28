@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { savingsGoalsAPI } from '../services/api';
+import { savingsGoalsAPI } from '../api';
 import { getCurrentMonth } from '../utils/formatters';
 
 export const useSavingsGoals = () => {

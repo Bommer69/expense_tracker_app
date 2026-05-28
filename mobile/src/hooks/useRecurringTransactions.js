@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { recurringTransactionsAPI } from '../services/api';
+import { recurringTransactionsAPI } from '../api';
 
 export const useRecurringTransactions = () => {
   const [recurrings, setRecurrings] = useState([]);

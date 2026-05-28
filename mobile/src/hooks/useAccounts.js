@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { accountsAPI } from '../services/api';
+import { accountsAPI } from '../api';
 
 export const useAccounts = () => {
   const [accounts, setAccounts] = useState([]);
