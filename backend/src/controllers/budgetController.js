@@ -4,6 +4,7 @@
 
 const Budget = require('../models/Budget');
 const Transaction = require('../models/Transaction');
+const Notification = require('../models/Notification');
 const { getUserId } = require('../utils/auth');
 
 async function getAll(req, res) {
@@ -78,7 +79,26 @@ async function createOrUpdate(req, res) {
       { amount, spent },
       { new: true, upsert: true }
     ).populate('categoryId');
-    
+
+    // Tạo notification nếu overspent
+    const categoryName = budget.categoryId?.name || 'Danh mục';
+    if (spent > amount) {
+      const percent = Math.round((spent / amount) * 100);
+      await Notification.create({
+        userId,
+        type: 'budget_alert',
+        severity: percent >= 100 ? 'critical' : 'warning',
+        title: percent >= 100 ? '⚠️ Ngân sách vượt mức!' : '⚠️ Ngân sách sắp vượt!',
+        message: `"${categoryName}" đã chi ${spent.toLocaleString('vi-VN')}₫ / ${amount.toLocaleString('vi-VN')}₫ (${percent}%).`,
+        data: {
+          categoryId,
+          amount: spent,
+          extra: { budgetAmount: amount, percent, categoryName },
+        },
+        aiGenerated: false,
+      });
+    }
+
     res.json(budget);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -121,6 +141,27 @@ async function update(req, res) {
       updates,
       { new: true, runValidators: true }
     ).populate('categoryId');
+
+    // Tạo notification nếu overspent
+    const resolvedAmount = updates.amount || existingBudget.amount;
+    if (updates.spent > resolvedAmount) {
+      const percent = Math.round((updates.spent / resolvedAmount) * 100);
+      const populatedBudget = await Budget.findById(budget._id).populate('categoryId');
+      const categoryName = populatedBudget?.categoryId?.name || 'Danh mục';
+      await Notification.create({
+        userId,
+        type: 'budget_alert',
+        severity: percent >= 100 ? 'critical' : 'warning',
+        title: percent >= 100 ? '⚠️ Ngân sách vượt mức!' : '⚠️ Ngân sách sắp vượt!',
+        message: `"${categoryName}" đã chi ${updates.spent.toLocaleString('vi-VN')}₫ / ${resolvedAmount.toLocaleString('vi-VN')}₫ (${percent}%).`,
+        data: {
+          categoryId: resolvedCategoryId,
+          amount: updates.spent,
+          extra: { budgetAmount: resolvedAmount, percent, categoryName },
+        },
+        aiGenerated: false,
+      });
+    }
 
     res.json(budget);
   } catch (err) {

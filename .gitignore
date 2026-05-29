@@ -12,7 +12,11 @@ pnpm-debug.log*
 # Environment (giữ ví dụ, bỏ qua file chứa bí mật)
 .env
 .env.*
-!.env.example
+.env.example
+
+
+# Backend uploads (không dùng nữa — avatar lưu trong DB)
+backend/uploads/
 
 # Expo / React Native
 .expo/
@@ -46,6 +50,7 @@ Desktop.ini
 
 # IDE / editor
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
@@ -60,4 +65,3 @@ coverage/
 tmp/
 temp/
 .vercel
-.env*.local

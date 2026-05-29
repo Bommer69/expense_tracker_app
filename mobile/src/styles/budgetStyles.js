@@ -19,6 +19,9 @@ export const budgetStyles = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 3 },
   progressLabel: { fontSize: 11, textAlign: 'right' },
   editBtn: { padding: 4, marginTop: -2 },
+  swipeActions: { flexDirection: 'row', alignItems: 'center' },
+  swipeBtn: { justifyContent: 'center', alignItems: 'center', width: 72, height: '100%', paddingVertical: 16 },
+  swipeBtnText: { color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 2 },
   headerMonthPopup: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

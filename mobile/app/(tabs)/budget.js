@@ -1,12 +1,13 @@
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl, Modal, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ScrollView, RefreshControl, Modal, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useBudgets } from '../../src/hooks/useBudgets';
 import { useCategories } from '../../src/hooks/useCategories';
 import { formatCurrency, formatNumberInput, getCurrentMonth, parseFormattedNumber } from '../../src/utils/formatters';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
+import BudgetItem from '../../src/components/budgets/BudgetItem';
 import { Ionicons } from '@expo/vector-icons';
 import { getErrorMessage } from '../../src/utils/errorHandler';
 import { budgetStyles as s } from '../../src/styles/budgetStyles';
@@ -75,38 +76,6 @@ export default function BudgetScreen() {
 
   const onRefresh = async () => { setRefreshing(true); await Promise.all([fetchBudgets(viewMonth), fetchCategories()]); setRefreshing(false); };
 
-  // Helper function to map old emoji icons to new Ionicons
-  const mapIconToIonicons = (iconName) => {
-    const iconMap = {
-      '🍔': 'restaurant-outline',
-      '🚗': 'car-outline',
-      '🛍️': 'bag-outline',
-      '📄': 'document-text-outline',
-      '🎮': 'game-controller-outline',
-      '💊': 'medical-outline',
-      '📚': 'book-outline',
-      '💰': 'cash-outline',
-      '🎁': 'gift-outline',
-      '💵': 'wallet-outline',
-      '🏠': 'home-outline',
-      '✈️': 'airplane-outline',
-      '👕': 'shirt-outline',
-      '💻': 'laptop-outline',
-      '📱': 'phone-portrait-outline',
-      '🎬': 'film-outline',
-      '⚽': 'football-outline',
-      '🎵': 'musical-notes-outline',
-      '🐾': 'paw-outline',
-      '💡': 'bulb-outline',
-      '🔧': 'build-outline',
-      '📦': 'cube-outline'
-    };
-    if (iconName && iconName.includes('-outline')) return iconName;
-    return iconMap[iconName] || 'pie-chart-outline';
-  };
-
-  const getStatusColor = (p) => p >= 100 ? theme.error : p >= 80 ? theme.warning : theme.success;
-
   // ---- MỞ MODAL: Tạo mới hoặc Chỉnh sửa ----
   const openCreateModal = () => {
     setEditBudgetTarget(null);
@@ -122,7 +91,8 @@ export default function BudgetScreen() {
     setModalVisible(true);
   };
 
-  // ---- XỬ LÝ SUBMIT: Tạo mới hoặc Cập nhật + kiểm tra overspend ----
+  // ---- XỬ LÝ SUBMIT: Tạo mới hoặc Cập nhật ----
+  // Notification overspend được tạo ở server-side (budgetController)
   const handleSubmit = async () => {
     const amount = parseFormattedNumber(formData.amount);
     if (!amount || amount <= 0) { Alert.alert('Lỗi', 'Nhập số tiền hợp lệ'); return; }
@@ -137,11 +107,10 @@ export default function BudgetScreen() {
         month: formData.month,
       };
 
-      let result;
       if (isEdit) {
-        result = await updateBudget(editBudgetTarget._id, payload);
+        await updateBudget(editBudgetTarget._id, payload);
       } else {
-        result = await createBudget(payload);
+        await createBudget(payload);
       }
 
       setModalVisible(false);
@@ -149,20 +118,6 @@ export default function BudgetScreen() {
       setFormData({ amount: '', month: getCurrentMonth() });
       setSelectedCategory(null);
       setViewMonth(formData.month);
-
-      // Kiểm tra overspend sau khi lưu
-      const spent = result?.spent || 0;
-      if (spent > amount) {
-        const overAmount = spent - amount;
-        if (Platform.OS === 'web') {
-          alert(`⚠️ Cảnh báo: "${selectedCategory.name}" đã vượt ngân sách ${formatCurrency(overAmount)}!`);
-        } else {
-          Alert.alert(
-            '⚠️ Vượt ngân sách!',
-            `"${selectedCategory.name}" đã chi ${formatCurrency(spent)}/${formatCurrency(amount)} (vượt ${formatCurrency(overAmount)}).\nHãy cân nhắc điều chỉnh lại chi tiêu.`
-          );
-        }
-      }
     } catch (err) {
       Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể lưu ngân sách');
     } finally {
@@ -222,6 +177,38 @@ export default function BudgetScreen() {
   const totalPercent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
   const remaining = totalBudget - totalSpent;
 
+  // Helper function to map old emoji icons to new Ionicons
+  const mapIconToIonicons = (iconName) => {
+    const iconMap = {
+      '🍔': 'restaurant-outline',
+      '🚗': 'car-outline',
+      '🛍️': 'bag-outline',
+      '📄': 'document-text-outline',
+      '🎮': 'game-controller-outline',
+      '💊': 'medical-outline',
+      '📚': 'book-outline',
+      '💰': 'cash-outline',
+      '🎁': 'gift-outline',
+      '💵': 'wallet-outline',
+      '🏠': 'home-outline',
+      '✈️': 'airplane-outline',
+      '👕': 'shirt-outline',
+      '💻': 'laptop-outline',
+      '📱': 'phone-portrait-outline',
+      '🎬': 'film-outline',
+      '⚽': 'football-outline',
+      '🎵': 'musical-notes-outline',
+      '🐾': 'paw-outline',
+      '💡': 'bulb-outline',
+      '🔧': 'build-outline',
+      '📦': 'cube-outline'
+    };
+    if (iconName && iconName.includes('-outline')) return iconName;
+    return iconMap[iconName] || 'pie-chart-outline';
+  };
+
+  const getStatusColor = (p) => p >= 100 ? theme.error : p >= 80 ? theme.warning : theme.success;
+
   const formatMonth = (m) => {
     const [y, mo] = m.split('-');
     return `${MONTHS_VI[parseInt(mo) - 1]} ${y}`;
@@ -246,8 +233,46 @@ export default function BudgetScreen() {
     setShowMonthPicker(false);
   };
 
-  // ---- Modal xác nhận vượt ngân sách hiển thị ngay trên budget items ----
-  // (Đã có sẵn màu sắc cảnh báo, giờ thêm icon warning khi overspend)
+  // Render item cho FlatList
+  const renderItem = ({ item }) => (
+    <BudgetItem
+      item={item}
+      onEdit={openEditModal}
+      onDelete={handleDeleteBudget}
+    />
+  );
+
+  // Header của FlatList = overview card
+  const ListHeader = budgets.length > 0 ? (
+    <View style={[s.overviewCard, { backgroundColor: theme.surface, borderColor: theme.border + '30' }]}>
+      <View style={s.overviewRow}>
+        <View style={s.overviewItem}>
+          <Text style={[s.overviewLabel, { color: theme.textSecondary }]}>Ngân sách</Text>
+          <Text style={[s.overviewVal, { color: theme.text }]}>{formatCurrency(totalBudget)}</Text>
+        </View>
+        <View style={s.overviewItem}>
+          <Text style={[s.overviewLabel, { color: theme.textSecondary }]}>Đã chi</Text>
+          <Text style={[s.overviewVal, { color: theme.error }]}>{formatCurrency(totalSpent)}</Text>
+        </View>
+        <View style={s.overviewItem}>
+          <Text style={[s.overviewLabel, { color: theme.textSecondary }]}>Còn lại</Text>
+          <Text style={[s.overviewVal, { color: remaining >= 0 ? theme.success : theme.error }]}>{formatCurrency(remaining)}</Text>
+        </View>
+      </View>
+      <View style={[s.progressTrack, { backgroundColor: theme.border + '40' }]}>
+        <View style={[s.progressFill, { backgroundColor: getStatusColor(totalPercent), width: `${Math.min(totalPercent, 100)}%` }]} />
+      </View>
+      <Text style={[s.progressLabel, { color: theme.textSecondary }]}>{Math.round(totalPercent)}% đã sử dụng</Text>
+    </View>
+  ) : null;
+
+  const ListEmpty = (
+    <View style={s.emptyWrap}>
+      <Ionicons name="wallet-outline" size={40} color={theme.textSecondary} style={{ marginBottom: 8 }} />
+      <Text style={[s.emptyText, { color: theme.textSecondary }]}>Chưa có ngân sách</Text>
+      <Text style={[{ color: theme.textLight, fontSize: 13, marginTop: 4 }]}>Nhấn + để tạo ngân sách mới</Text>
+    </View>
+  );
 
   return (
     <View style={[s.container, { backgroundColor: theme.background }]}>
@@ -276,13 +301,11 @@ export default function BudgetScreen() {
       {/* Header Month Picker Popup */}
       {headerMonthPicker && (
         <>
-          {/* Overlay mờ */}
           <TouchableOpacity 
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99, backgroundColor: 'rgba(0,0,0,0.4)' }}
             activeOpacity={1} 
             onPress={() => setHeaderMonthPicker(false)} 
           />
-          {/* Popup chọn tháng */}
           <View style={[s.headerMonthPopup, { backgroundColor: theme.background, position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100 }]}>
             <View style={s.handle} />
             <Text style={[s.modalTitle, { color: theme.text, textAlign: 'center', marginBottom: 16 }]}>Chọn tháng</Text>
@@ -313,75 +336,17 @@ export default function BudgetScreen() {
         </>
       )}
 
-      <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}>
-
-        {/* Overview */}
-        {budgets.length > 0 && (
-          <View style={[s.overviewCard, { backgroundColor: theme.surface, borderColor: theme.border + '30' }]}>
-            <View style={s.overviewRow}>
-              <View style={s.overviewItem}>
-                <Text style={[s.overviewLabel, { color: theme.textSecondary }]}>Ngân sách</Text>
-                <Text style={[s.overviewVal, { color: theme.text }]}>{formatCurrency(totalBudget)}</Text>
-              </View>
-              <View style={s.overviewItem}>
-                <Text style={[s.overviewLabel, { color: theme.textSecondary }]}>Đã chi</Text>
-                <Text style={[s.overviewVal, { color: theme.error }]}>{formatCurrency(totalSpent)}</Text>
-              </View>
-              <View style={s.overviewItem}>
-                <Text style={[s.overviewLabel, { color: theme.textSecondary }]}>Còn lại</Text>
-                <Text style={[s.overviewVal, { color: remaining >= 0 ? theme.success : theme.error }]}>{formatCurrency(remaining)}</Text>
-              </View>
-            </View>
-            <View style={[s.progressTrack, { backgroundColor: theme.border + '40' }]}>
-              <View style={[s.progressFill, { backgroundColor: getStatusColor(totalPercent), width: `${Math.min(totalPercent, 100)}%` }]} />
-            </View>
-            <Text style={[s.progressLabel, { color: theme.textSecondary }]}>{Math.round(totalPercent)}% đã sử dụng</Text>
-          </View>
-        )}
-
-        {/* Budget List */}
-        {budgets.length === 0 ? (
-          <View style={s.emptyWrap}>
-            <Ionicons name="wallet-outline" size={40} color={theme.textSecondary} style={{ marginBottom: 8 }} />
-            <Text style={[s.emptyText, { color: theme.textSecondary }]}>Chưa có ngân sách</Text>
-            <Text style={[{ color: theme.textLight, fontSize: 13, marginTop: 4 }]}>Nhấn + để tạo ngân sách mới</Text>
-          </View>
-        ) : budgets.map(item => {
-          const percent = item.amount > 0 ? (item.spent / item.amount) * 100 : 0;
-          const clampedPercent = Math.min(percent, 100);
-          const isOver = percent >= 100;
-          return (
-            <View key={item._id} style={[s.budgetItem, { borderBottomColor: theme.border + '40' }]}>
-              <View style={s.budgetTop}>
-                <View style={s.budgetLeft}>
-                  <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'pie-chart-outline'} size={20} color={theme.text} />
-                  <Text style={[s.budgetName, { color: theme.text }]}>{item.categoryId?.name || 'Danh mục'}</Text>
-                  {isOver && (
-                    <Ionicons name="warning-outline" size={18} color={theme.error} />
-                  )}
-                </View>
-                <View style={s.budgetTopRight}>
-                  <Text style={[s.budgetPercent, { color: getStatusColor(percent) }]}>{Math.round(percent)}%</Text>
-                  <TouchableOpacity style={s.editBtn} onPress={() => openEditModal(item)}>
-                    <Ionicons name="create-outline" size={16} color={theme.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={s.deleteBtn} onPress={() => handleDeleteBudget(item)}>
-                    <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={[s.progressTrack, { backgroundColor: theme.border + '40' }]}>
-                <View style={[s.progressFill, { backgroundColor: getStatusColor(percent), width: `${clampedPercent}%` }]} />
-              </View>
-              <View style={s.budgetBottom}>
-                <Text style={[{ color: theme.text, fontSize: 14, fontWeight: '600' }]}>{formatCurrency(item.spent || 0)}</Text>
-                <Text style={[{ color: theme.textSecondary, fontSize: 13 }]}>/ {formatCurrency(item.amount)}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
+      {/* Budget List với FlatList */}
+      <FlatList
+        data={budgets}
+        renderItem={renderItem}
+        keyExtractor={item => item._id}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={ListEmpty}
+      />
 
       {/* FAB */}
       <TouchableOpacity style={[s.fab, { backgroundColor: theme.primary }]} onPress={openCreateModal}>
@@ -495,9 +460,9 @@ export default function BudgetScreen() {
           { iconName: 'create-outline', title: 'Chỉnh sửa ngân sách', desc: 'Nhấn biểu tượng bút để sửa số tiền, tháng hoặc danh mục của ngân sách hiện tại.' },
           { iconName: 'color-palette-outline', title: 'Cảnh báo bằng màu sắc', desc: 'Thanh tiến độ Xanh (an toàn), Vàng (sắp hết), Đỏ (vượt ngân sách).' },
           { iconName: 'calendar-outline', title: 'Chọn tháng trực quan', desc: 'Nhấn vào tên tháng ở header để mở popup chọn tháng nhanh.' },
-          { iconName: 'warning-outline', title: 'Cảnh báo vượt ngân sách', desc: 'Khi lưu ngân sách mới hoặc chỉnh sửa, nếu đã chi vượt mức sẽ hiện thông báo cảnh báo.' },
+          { iconName: 'warning-outline', title: 'Cảnh báo vượt ngân sách', desc: 'Khi lưu ngân sách nếu đã chi vượt mức, thông báo sẽ xuất hiện ở tab Thông báo.' },
           { iconName: 'pricetag-outline', title: 'Thêm danh mục', desc: 'Trong form tạo ngân sách, bạn có thể tạo danh mục chi tiêu mới nếu cần.' },
-          { iconName: 'trash-outline', title: 'Xóa', desc: 'Dùng biểu tượng thùng rác để xóa ngân sách hoặc nhấn giữ danh mục để xóa (trừ danh mục mặc định).' }
+          { iconName: 'trash-outline', title: 'Xóa', desc: 'Vuốt trái để xóa hoặc sửa ngân sách. Nhấn giữ danh mục để xóa (trừ danh mục mặc định).' }
         ]}
       />
 

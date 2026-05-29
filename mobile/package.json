@@ -80,6 +80,11 @@
   },
   "scripts": {
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "start": "npx expo start",
+    "start:local": "copy /y .env.local .env && npx expo start",
+    "start:prod": "copy /y .env.production .env && npx expo start",
+    "switch:local": "copy /y .env.local .env",
+    "switch:prod": "copy /y .env.production .env"
   }
 }
