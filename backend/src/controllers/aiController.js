@@ -4,6 +4,7 @@
 
 const Transaction = require('../models/Transaction');
 const Budget = require('../models/Budget');
+const Notification = require('../models/Notification');
 const { getUserId } = require('../utils/auth');
 const { chatWithAI, getSpendingAdvice, clearUserMemory } = require('../services/aiClassifier');
 
@@ -84,10 +85,12 @@ async function chat(req, res) {
     }
     
     let answer;
+    let isError = false;
     try {
       answer = await chatWithAI(message, userId);
     } catch (err) {
       console.error('AI chat error:', err.message);
+      isError = true;
       const errorText = String(err.message || '');
 
       if (errorText.includes('GEMINI_API_KEY')) {
@@ -107,6 +110,34 @@ async function chat(req, res) {
         answer = '⚠️ API key đã hết quota miễn phí.\n\nVui lòng lấy key mới tại https://aistudio.google.com/apikey và cập nhật GEMINI_API_KEY trong backend/.env.';
       } else {
         answer = '🤖 Xin lỗi, AI tạm thời không khả dụng. Vui lòng thử lại sau.';
+      }
+    }
+
+    // Tạo Notification để hiển thị tin nhắn AI trong notification list + push
+    if (!isError) {
+      try {
+        // Rút gọn tin nhắn AI nếu quá dài (lấy 200 ký tự đầu)
+        const shortMsg = answer.length > 200
+          ? answer.substring(0, 200) + '...'
+          : answer;
+
+        await Notification.create({
+          userId,
+          type: 'ai_insight',
+          severity: 'info',
+          title: '🤖 Trợ lý AI',
+          message: shortMsg,
+          aiGenerated: true,
+          aiAnalysis: answer,  // Lưu toàn bộ tin nhắn gốc
+          data: {
+            extra: {
+              userMessage: message,
+              fullResponse: answer,
+            },
+          },
+        });
+      } catch (notifErr) {
+        console.error('[AI Chat] Failed to create notification:', notifErr.message);
       }
     }
 
