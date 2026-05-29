@@ -5,6 +5,7 @@
  * thông báo thông minh gửi đến người dùng.
  */
 
+const mongoose = require('mongoose');
 const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
 const Budget = require('../models/Budget');
@@ -72,25 +73,48 @@ async function isOnCooldown(userId, type) {
 
 /**
  * Lấy tổng số dư hiện tại của user (tính từ giao dịch)
+ * Sử dụng MongoDB aggregation để tối ưu tốc độ thay vì load toàn bộ documents
  */
 async function getCurrentBalance(userId) {
-  const txs = await Transaction.find({ userId });
-  return txs.reduce((sum, t) => {
-    return t.type === 'income' ? sum + t.amount : sum - t.amount;
-  }, 0);
+  const result = await Transaction.aggregate([
+    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+    {
+      $group: {
+        _id: null,
+        balance: {
+          $sum: {
+            $cond: [{ $eq: ['$type', 'income'] }, '$amount', { $multiply: ['$amount', -1] }],
+          },
+        },
+      },
+    },
+  ]);
+  return result.length > 0 ? result[0].balance : 0;
 }
 
 /**
  * Lấy tổng số dư tại một thời điểm (trước khi giao dịch hiện tại)
  */
 async function getBalanceBefore(userId, beforeDate) {
-  const txs = await Transaction.find({
-    userId,
-    date: { $lt: beforeDate },
-  });
-  return txs.reduce((sum, t) => {
-    return t.type === 'income' ? sum + t.amount : sum - t.amount;
-  }, 0);
+  const result = await Transaction.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(userId),
+        date: { $lt: beforeDate },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        balance: {
+          $sum: {
+            $cond: [{ $eq: ['$type', 'income'] }, '$amount', { $multiply: ['$amount', -1] }],
+          },
+        },
+      },
+    },
+  ]);
+  return result.length > 0 ? result[0].balance : 0;
 }
 
 // ======================== AI GENERATION ========================
@@ -251,47 +275,93 @@ async function evaluateTransaction(transaction) {
     const description = transaction.description || '';
     const balanceAfter = await getCurrentBalance(userId);
 
-    // ===== 1. Kiểm tra giao dịch lớn =====
-    if (amount >= CONFIG.largeTransactionThreshold()) {
-      if (!await isOnCooldown(userId, 'large_transaction')) {
-        const context = {
-          type,
+    // ===== 1. Tạo template notification cho các loại =====
+    const [template, largeContext] = amount >= CONFIG.largeTransactionThreshold() && !(await isOnCooldown(userId, 'large_transaction'))
+      ? [getTemplateMessage('large_transaction', { type, amount, categoryName, description, balanceAfter }), { type, amount, categoryName, description, balanceAfter }]
+      : [null, null];
+
+    // Tạo notification giao dịch lớn NGAY LẬP TỨC với template (không chờ AI)
+    if (template) {
+      const notif = await Notification.create({
+        userId,
+        type: 'large_transaction',
+        severity: template.severity,
+        title: template.title,
+        message: template.message,
+        aiGenerated: false,
+        data: {
+          transactionId: transaction._id,
+          categoryId: transaction.categoryId?._id,
           amount,
-          categoryName,
-          description,
           balanceAfter,
-        };
+          extra: { type, description, categoryName },
+        },
+      });
+      console.log(`[aiTrigger] large_transaction notification created for user ${userId}`);
 
-        let aiMessage = await generateAIMessage('large_transaction', context);
-        const template = getTemplateMessage('large_transaction', context);
-
-        await Notification.create({
-          userId,
-          type: 'large_transaction',
-          severity: template.severity,
-          title: aiMessage ? '💸 AI phân tích giao dịch lớn' : template.title,
-          message: aiMessage || template.message,
-          aiGenerated: !!aiMessage,
-          aiAnalysis: aiMessage || null,
-          data: {
-            transactionId: transaction._id,
-            categoryId: transaction.categoryId?._id,
-            amount,
-            balanceAfter,
-            extra: { type, description, categoryName },
-          },
-        });
-        console.log(`[aiTrigger] large_transaction notification created for user ${userId}`);
-      }
+      // Enrich với AI không đồng bộ (không block luồng chính)
+      generateAIMessage('large_transaction', largeContext).then(async (aiMessage) => {
+        if (aiMessage && notif._id) {
+          await Notification.findByIdAndUpdate(notif._id, {
+            title: '💸 AI phân tích giao dịch lớn',
+            message: aiMessage,
+            aiGenerated: true,
+            aiAnalysis: aiMessage,
+          });
+          console.log(`[aiTrigger] large_transaction enriched with AI for user ${userId}`);
+        }
+      }).catch(err => {
+        console.log('[aiTrigger] large_transaction AI enrichment failed:', err.message);
+      });
     }
 
-    // ===== 2. Kiểm tra biến động số dư =====
+    // ===== 2. Thông báo biến động số dư (cho mọi giao dịch) =====
     const balanceBefore = balanceAfter + (type === 'expense' ? amount : -amount);
     const absChange = Math.abs(balanceAfter - balanceBefore);
     const pctChange = balanceBefore !== 0
       ? Math.round(((balanceAfter - balanceBefore) / Math.abs(balanceBefore)) * 100)
       : 0;
 
+    // Luôn tạo thông báo transaction_update cho mọi giao dịch
+    // (không phụ thuộc ngưỡng, cooldown riêng 1 phút để tránh spam khi tạo hàng loạt)
+    {
+      const recentTxNotif = await Notification.findOne({
+        userId,
+        type: 'transaction_update',
+        createdAt: { $gte: minutesAgo(1) },
+      });
+
+      if (!recentTxNotif) {
+        const reason = `${type === 'expense' ? 'Chi' : 'Thu'} ${vnd(amount)} - ${categoryName}`;
+        const direction = type === 'expense' ? 'giảm' : 'tăng';
+        const emoji = type === 'expense' ? '💸' : '💰';
+
+        const title = type === 'expense' ? `${emoji} Chi tiền` : `${emoji} Thu nhập`;
+        const message = type === 'expense'
+          ? `Bạn vừa chi ${vnd(amount)}${description ? ` cho "${description}"` : ''} (${categoryName}). Số dư hiện tại: ${vnd(balanceAfter)}.`
+          : `Bạn vừa nhận ${vnd(amount)}${description ? ` từ "${description}"` : ''} (${categoryName}). Số dư hiện tại: ${vnd(balanceAfter)}.`;
+
+        await Notification.create({
+          userId,
+          type: 'transaction_update',
+          severity: type === 'expense' ? 'info' : 'info',
+          title,
+          message,
+          aiGenerated: false,
+          data: {
+            transactionId: transaction._id,
+            categoryId: transaction.categoryId?._id,
+            amount: balanceAfter - balanceBefore,
+            balanceAfter,
+            percentageChange: pctChange,
+            extra: { balanceBefore, type, description, categoryName },
+          },
+        });
+        console.log(`[aiTrigger] transaction_update notification created for user ${userId}`);
+      }
+    }
+
+    // ===== 3. Kiểm tra biến động số dư lớn (chỉ khi đủ ngưỡng) =====
     const minAmount = CONFIG.balanceChangeMinAmount();
     const minPct = CONFIG.balanceChangePercent();
 
@@ -305,17 +375,16 @@ async function evaluateTransaction(transaction) {
           reason: `${type === 'expense' ? 'Chi' : 'Thu'} ${vnd(amount)} - ${categoryName}`,
         };
 
-        let aiMessage = await generateAIMessage('balance_change', context);
         const template = getTemplateMessage('balance_change', context);
 
-        await Notification.create({
+        // Tạo notification NGAY với template, không chờ AI
+        const notif = await Notification.create({
           userId,
           type: 'balance_change',
           severity: template.severity,
-          title: aiMessage ? '📊 AI nhận xét biến động số dư' : template.title,
-          message: aiMessage || template.message,
-          aiGenerated: !!aiMessage,
-          aiAnalysis: aiMessage || null,
+          title: template.title,
+          message: template.message,
+          aiGenerated: false,
           data: {
             transactionId: transaction._id,
             amount: balanceAfter - balanceBefore,
@@ -325,6 +394,21 @@ async function evaluateTransaction(transaction) {
           },
         });
         console.log(`[aiTrigger] balance_change notification created for user ${userId}`);
+
+        // Enrich với AI không đồng bộ
+        generateAIMessage('balance_change', context).then(async (aiMessage) => {
+          if (aiMessage && notif._id) {
+            await Notification.findByIdAndUpdate(notif._id, {
+              title: '📊 AI nhận xét biến động số dư',
+              message: aiMessage,
+              aiGenerated: true,
+              aiAnalysis: aiMessage,
+            });
+            console.log(`[aiTrigger] balance_change enriched with AI for user ${userId}`);
+          }
+        }).catch(err => {
+          console.log('[aiTrigger] balance_change AI enrichment failed:', err.message);
+        });
       }
     }
 

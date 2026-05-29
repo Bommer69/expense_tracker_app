@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 export const notificationStyles = StyleSheet.create({
   container: { flex: 1 },
@@ -68,6 +68,81 @@ export const notificationStyles = StyleSheet.create({
   emptyIcon: { marginBottom: 16 },
   emptyTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8, textAlign: 'center' },
   emptyDesc: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '85%',
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+  },
+  modalBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  modalSection: {
+    marginBottom: 20,
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  modalMessage: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  detailKey: {
+    fontSize: 13,
+  },
+  detailVal: {
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'right',
+    maxWidth: '60%',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: 0.5,
+  },
+  modalBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
 
   // Badge
   badgeContainer: {

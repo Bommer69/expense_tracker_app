@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useNotifications } from '../../src/hooks/useNotifications';
@@ -18,12 +20,13 @@ import { vi } from 'date-fns/locale';
 import { notificationStyles as styles } from '../../src/styles/notificationStyles';
 
 const SEVERITY_COLORS = {
-  info: { bg: '#E8F5E9', text: '#2E7D32' },
+  info: { bg: '#E3F2FD', text: '#1565C0' },
   warning: { bg: '#FFF3E0', text: '#E65100' },
   critical: { bg: '#FFEBEE', text: '#C62828' },
 };
 
 const TYPE_ICONS = {
+  transaction_update: 'swap-horizontal',
   balance_change: 'trending-down',
   large_transaction: 'cash',
   budget_alert: 'alert-circle',
@@ -54,6 +57,7 @@ export default function NotificationsScreen() {
     clearAllNotifications,
   } = useNotifications();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -102,6 +106,7 @@ export default function NotificationsScreen() {
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => {
+          setSelectedNotif(item);
           if (isUnread) markAsRead(item._id || item.id);
         }}
         onLongPress={() => handleDelete(item)}
@@ -169,7 +174,7 @@ export default function NotificationsScreen() {
           </View>
         </View>
 
-        {/* Unread dot / delete */}
+        {/* Unread dot */}
         <View style={styles.notifActions}>
           {isUnread && (
             <View
@@ -186,11 +191,214 @@ export default function NotificationsScreen() {
     );
   };
 
+  /* Notification Detail Modal */
+  const renderDetailModal = () => {
+    if (!selectedNotif) return null;
+    const item = selectedNotif;
+    const severity = item.severity || 'info';
+    const severityColor = SEVERITY_COLORS[severity] || SEVERITY_COLORS.info;
+    const iconName = TYPE_ICONS[item.type] || 'notifications';
+    const data = item.data || {};
+    const extra = data.extra || {};
+
+    return (
+      <Modal
+        visible={!!selectedNotif}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedNotif(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.surface }]}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View
+                  style={[
+                    styles.notifIcon,
+                    { backgroundColor: theme.primary + '15', marginRight: 10 },
+                  ]}
+                >
+                  <Ionicons name={iconName} size={22} color={theme.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View
+                    style={[
+                      styles.severityBadge,
+                      { backgroundColor: severityColor.bg, alignSelf: 'flex-start' },
+                    ]}
+                  >
+                    <Text style={[styles.severityText, { color: severityColor.text }]}>
+                      {severity === 'critical'
+                        ? 'Quan trọng'
+                        : severity === 'warning'
+                          ? 'Cảnh báo'
+                          : 'Thông tin'}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[styles.notifTitle, { color: theme.text, fontSize: 16, marginTop: 4 }]}
+                    numberOfLines={2}
+                  >
+                    {item.title}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedNotif(null)} style={{ padding: 4 }}>
+                <Ionicons name="close" size={24} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Full message */}
+              <View style={styles.modalSection}>
+                <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Nội dung</Text>
+                <Text style={[styles.modalMessage, { color: theme.text }]}>{item.message}</Text>
+              </View>
+
+              {/* AI Analysis */}
+              {item.aiAnalysis && (
+                <View style={styles.modalSection}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <Ionicons name="sparkles" size={14} color={theme.primary} />
+                    <Text style={[styles.modalLabel, { color: theme.primary }]}>AI Phân tích</Text>
+                  </View>
+                  <Text style={[styles.modalMessage, { color: theme.text }]}>
+                    {item.aiAnalysis}
+                  </Text>
+                </View>
+              )}
+
+              {/* Details */}
+              <View style={styles.modalSection}>
+                <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Chi tiết</Text>
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailKey, { color: theme.textSecondary }]}>Loại</Text>
+                  <Text style={[styles.detailVal, { color: theme.text }]}>{item.type}</Text>
+                </View>
+                {data.amount != null && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailKey, { color: theme.textSecondary }]}>Số tiền</Text>
+                    <Text
+                      style={[styles.detailVal, { color: theme.text, fontWeight: '600' }]}
+                    >
+                      {data.amount.toLocaleString('vi-VN')} VND
+                    </Text>
+                  </View>
+                )}
+                {data.balanceAfter != null && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailKey, { color: theme.textSecondary }]}>Số dư sau</Text>
+                    <Text style={[styles.detailVal, { color: theme.text }]}>
+                      {data.balanceAfter.toLocaleString('vi-VN')} VND
+                    </Text>
+                  </View>
+                )}
+                {data.percentageChange != null && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailKey, { color: theme.textSecondary }]}>Thay đổi</Text>
+                    <Text
+                      style={[
+                        styles.detailVal,
+                        { color: data.percentageChange < 0 ? theme.error : '#4CAF50' },
+                      ]}
+                    >
+                      {data.percentageChange >= 0 ? '+' : ''}
+                      {data.percentageChange}%
+                    </Text>
+                  </View>
+                )}
+                {extra.categoryName && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailKey, { color: theme.textSecondary }]}>Danh mục</Text>
+                    <Text style={[styles.detailVal, { color: theme.text }]}>
+                      {extra.categoryName}
+                    </Text>
+                  </View>
+                )}
+                {extra.description && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailKey, { color: theme.textSecondary }]}>Mô tả</Text>
+                    <Text style={[styles.detailVal, { color: theme.text }]}>
+                      {extra.description}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Time & AI badge */}
+              <View style={styles.modalSection}>
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailKey, { color: theme.textSecondary }]}>Thời gian</Text>
+                  <Text style={[styles.detailVal, { color: theme.text }]}>
+                    {new Date(item.createdAt).toLocaleString('vi-VN')}
+                  </Text>
+                </View>
+                {item.aiGenerated && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailKey, { color: theme.textSecondary }]}>Nguồn</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="sparkles" size={14} color={theme.primary} />
+                      <Text style={{ color: theme.primary, fontWeight: '500' }}>
+                        AI Generated
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+
+            {/* Actions */}
+            <View style={[styles.modalActions, { borderTopColor: theme.border + '40' }]}>
+              {!item.read && (
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: theme.primary + '15' }]}
+                  onPress={() => {
+                    markAsRead(item._id || item.id);
+                    setSelectedNotif((prev) =>
+                      prev ? { ...prev, read: true } : null
+                    );
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
+                  <Text style={{ color: theme.primary, fontWeight: '600', marginLeft: 6 }}>
+                    Đánh dấu đã đọc
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: theme.error + '15' }]}
+                onPress={() => {
+                  setSelectedNotif(null);
+                  handleDelete(item);
+                }}
+              >
+                <Ionicons name="trash-outline" size={18} color={theme.error} />
+                <Text style={{ color: theme.error, fontWeight: '600', marginLeft: 6 }}>
+                  Xoá
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   if (loading && notifications.length === 0) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Đang tải thông báo...</Text>
+        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+          Đang tải thông báo...
+        </Text>
       </View>
     );
   }
@@ -257,11 +465,15 @@ export default function NotificationsScreen() {
               Chưa có thông báo
             </Text>
             <Text style={[styles.emptyDesc, { color: theme.textSecondary }]}>
-              Khi có biến động số dư, giao dịch lớn hoặc cảnh báo ngân sách, AI sẽ thông báo cho bạn tại đây.
+              Khi có biến động số dư, giao dịch lớn hoặc cảnh báo ngân sách, AI sẽ thông báo cho
+              bạn tại đây.
             </Text>
           </View>
         }
       />
+
+      {/* Notification Detail Modal */}
+      {renderDetailModal()}
     </View>
   );
 }

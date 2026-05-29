@@ -1,14 +1,14 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
-import { View, Platform, Text } from 'react-native';
+import { View, Platform, Text, useContext } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tabLayoutStyles as styles } from '../../src/styles/tabLayoutStyles';
-import { useNotifications } from '../../src/hooks/useNotifications';
+import { NotificationContext } from '../../src/context/NotificationContext';
 import { notificationStyles } from '../../src/styles/notificationStyles';
 
 export default function TabLayout() {
   const { theme } = useTheme();
-  const { unreadCount } = useNotifications();
+  const { unreadCount } = useContext(NotificationContext);
 
   return (
     <Tabs

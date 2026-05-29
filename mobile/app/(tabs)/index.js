@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, useContext } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAccounts } from '../../src/hooks/useAccounts';
@@ -12,13 +12,13 @@ import QuickActions from '../../src/components/home/QuickActions';
 import RecentTransactions from '../../src/components/home/RecentTransactions';
 import { homeStyles as styles } from '../../src/styles/homeStyles';
 import { notificationStyles } from '../../src/styles/notificationStyles';
-import { useNotifications } from '../../src/hooks/useNotifications';
+import { NotificationContext } from '../../src/context/NotificationContext';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { unreadCount } = useContext(NotificationContext);
   const { getBalance } = useAccounts();
   const { transactions, loading: tL, fetchTransactions } = useTransactions(5);
   const { summary, loading: sL, fetchSummary } = useTransactionSummary();

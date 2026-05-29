@@ -5,12 +5,13 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
-      'balance_change',    // Biến động số dư lớn
-      'large_transaction', // Giao dịch giá trị lớn
-      'budget_alert',      // Cảnh báo ngân sách
-      'anomaly',           // Chi tiêu bất thường
-      'daily_summary',     // Tổng kết cuối ngày
-      'ai_insight',        // Insight từ AI
+      'transaction_update', // Mọi giao dịch phát sinh
+      'balance_change',     // Biến động số dư lớn
+      'large_transaction',  // Giao dịch giá trị lớn
+      'budget_alert',       // Cảnh báo ngân sách
+      'anomaly',            // Chi tiêu bất thường
+      'daily_summary',      // Tổng kết cuối ngày
+      'ai_insight',         // Insight từ AI
     ],
     required: true,
   },

@@ -80,7 +80,7 @@ export const useNotifications = (limit = 20) => {
     }
   }, []);
 
-  // Polling: tự động cập nhật số thông báo chưa đọc mỗi 30 giây (chỉ khi authenticated)
+  // Polling: tự động cập nhật số thông báo chưa đọc mỗi 10 giây (chỉ khi authenticated)
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -88,7 +88,7 @@ export const useNotifications = (limit = 20) => {
 
     pollingRef.current = setInterval(() => {
       fetchUnreadCount();
-    }, 30000);
+    }, 10000);
 
     return () => {
       if (pollingRef.current) {
