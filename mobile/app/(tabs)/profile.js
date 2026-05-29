@@ -10,7 +10,7 @@ import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { Ionicons } from '@expo/vector-icons';
 import { profileStyles as styles } from '../../src/styles/profileStyles';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -123,7 +123,7 @@ export default function ProfileScreen() {
 
       // Đọc ảnh thành base64
       const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
 
       // Xác định MIME type từ uri
