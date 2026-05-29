@@ -160,36 +160,45 @@ async function getMe(req, res) {
  */
 async function updateProfile(req, res) {
   console.log('[AUTH] updateProfile request received');
-  try {
-    const { getUserId } = require('../utils/auth');
-    const userId = getUserId(req);
+  console.log('[AUTH] updateProfile - req.userId:', req.userId);
+  console.log('[AUTH] updateProfile - req.body:', req.body);
+  console.log('[AUTH] updateProfile - req.file:', req.file);
 
+  try {
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Phiên đăng nhập đã hết hạn' });
     }
 
-    const user = await User.findById(userId);
+    // Xây dựng update object
+    const updateFields = {};
+
+    if (req.body.name && req.body.name.trim().length >= 2) {
+      updateFields.name = req.body.name.trim();
+    }
+
+    // Multer xử lý file upload: req.file có thông tin file đã lưu
+    if (req.file) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      updateFields.avatar = `${baseUrl}/uploads/avatars/${req.file.filename}`;
+      console.log('[AUTH] updateProfile - avatar saved to:', updateFields.avatar);
+    }
+
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ error: 'Không có dữ liệu nào để cập nhật' });
+    }
+
+    console.log('[AUTH] updateProfile - updateFields:', updateFields);
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
     if (!user) {
       return res.status(404).json({ error: 'Không tìm thấy người dùng' });
     }
-
-    // Cập nhật tên nếu có
-    if (req.body.name && req.body.name.trim().length >= 2) {
-      user.name = req.body.name.trim();
-    }
-
-    // Cập nhật avatar nếu có file upload
-    if (req.file) {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      user.avatar = `${baseUrl}/uploads/avatars/${req.file.filename}`;
-    }
-
-    // Cập nhật avatar nếu là URL (từ camera/mạng)
-    if (req.body.avatar) {
-      user.avatar = req.body.avatar;
-    }
-
-    await user.save();
 
     console.log('[AUTH] updateProfile successful for user:', user.email);
     res.json({
@@ -200,6 +209,7 @@ async function updateProfile(req, res) {
     });
   } catch (err) {
     console.error('[AUTH] updateProfile error:', err);
+    console.error('[AUTH] updateProfile error stack:', err.stack);
     res.status(500).json({ error: 'Không thể cập nhật hồ sơ. Vui lòng thử lại.' });
   }
 }
