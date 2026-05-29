@@ -117,9 +117,9 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const updateUser = useCallback(async (formData) => {
+  const updateUser = useCallback(async (data) => {
     try {
-      const response = await authAPI.updateProfile(formData);
+      const response = await authAPI.updateProfile(data);
       const updatedUser = response.data;
 
       // Cập nhật state

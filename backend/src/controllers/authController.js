@@ -161,8 +161,6 @@ async function getMe(req, res) {
 async function updateProfile(req, res) {
   console.log('[AUTH] updateProfile request received');
   console.log('[AUTH] updateProfile - req.userId:', req.userId);
-  console.log('[AUTH] updateProfile - req.body:', req.body);
-  console.log('[AUTH] updateProfile - req.file:', req.file);
 
   try {
     const userId = req.userId;
@@ -177,18 +175,26 @@ async function updateProfile(req, res) {
       updateFields.name = req.body.name.trim();
     }
 
-    // Multer xử lý file upload: req.file có thông tin file đã lưu
-    if (req.file) {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      updateFields.avatar = `${baseUrl}/uploads/avatars/${req.file.filename}`;
-      console.log('[AUTH] updateProfile - avatar saved to:', updateFields.avatar);
+    // Avatar là base64 data URL (vd: "data:image/jpeg;base64,/9j/4AAQ...")
+    if (req.body.avatar && typeof req.body.avatar === 'string') {
+      // Validate base64 data URL
+      if (req.body.avatar.startsWith('data:image/') && req.body.avatar.includes(';base64,')) {
+        // Giới hạn kích thước ~5MB (base64)
+        if (req.body.avatar.length > 5 * 1024 * 1024) {
+          return res.status(400).json({ error: 'Ảnh quá lớn. Tối đa 5MB.' });
+        }
+        updateFields.avatar = req.body.avatar;
+        console.log('[AUTH] updateProfile - avatar updated (base64, length:', req.body.avatar.length, ')');
+      } else {
+        return res.status(400).json({ error: 'Định dạng ảnh không hợp lệ' });
+      }
     }
 
     if (Object.keys(updateFields).length === 0) {
       return res.status(400).json({ error: 'Không có dữ liệu nào để cập nhật' });
     }
 
-    console.log('[AUTH] updateProfile - updateFields:', updateFields);
+    console.log('[AUTH] updateProfile - updateFields:', Object.keys(updateFields));
 
     const user = await User.findByIdAndUpdate(
       userId,
@@ -209,7 +215,6 @@ async function updateProfile(req, res) {
     });
   } catch (err) {
     console.error('[AUTH] updateProfile error:', err);
-    console.error('[AUTH] updateProfile error stack:', err.stack);
     res.status(500).json({ error: 'Không thể cập nhật hồ sơ. Vui lòng thử lại.' });
   }
 }

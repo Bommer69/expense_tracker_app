@@ -10,6 +10,7 @@ import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { Ionicons } from '@expo/vector-icons';
 import { profileStyles as styles } from '../../src/styles/profileStyles';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -78,9 +79,7 @@ export default function ProfileScreen() {
     }
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append('name', trimmed);
-      await updateUser(formData);
+      await updateUser({ name: trimmed });
       setEditModalVisible(false);
       Alert.alert('✅', 'Cập nhật tên thành công!');
     } catch (err) {
@@ -120,25 +119,26 @@ export default function ProfileScreen() {
       const asset = result.assets[0];
       if (!asset?.uri) return;
 
-      // Tạo FormData để upload
-      const formData = new FormData();
-      
-      // Lấy extension từ uri
-      const uriParts = asset.uri.split('.');
-      const ext = uriParts[uriParts.length - 1] || 'jpg';
-      
-      formData.append('avatar', {
-        uri: asset.uri,
-        name: `avatar.${ext}`,
-        type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+      setSubmitting(true);
+
+      // Đọc ảnh thành base64
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
       });
 
-      setSubmitting(true);
-      await updateUser(formData);
+      // Xác định MIME type từ uri
+      const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
+      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+
+      // Gửi lên server dưới dạng data URL
+      await updateUser({
+        avatar: `data:${mimeType};base64,${base64}`,
+      });
+
       Alert.alert('✅', 'Cập nhật ảnh đại diện thành công!');
     } catch (err) {
       console.error('Avatar pick error:', err);
-      Alert.alert('Lỗi', 'Không thể cập nhật ảnh đại diện');
+      Alert.alert('Lỗi', err?.error || 'Không thể cập nhật ảnh đại diện');
     } finally {
       setSubmitting(false);
     }

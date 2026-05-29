@@ -3,9 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
-
-const multer = require('multer');
 
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
@@ -32,9 +29,6 @@ app.use(cors(allowedOrigin ? {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Phục vụ file uploads (avatar)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
 // Rate limiting cho auth routes (chống brute force)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -59,21 +53,6 @@ app.use('/api/notifications', notificationRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
-});
-
-// Error handler cho Multer (file upload lỗi)
-app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    console.error('[MULTER] Error:', err);
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File ảnh quá lớn. Tối đa 5MB.' });
-    }
-    return res.status(400).json({ error: `Lỗi upload: ${err.message}` });
-  }
-  if (err.message?.includes('Chỉ chấp nhận')) {
-    return res.status(400).json({ error: err.message });
-  }
-  next(err);
 });
 
 module.exports = app;
