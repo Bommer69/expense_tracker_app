@@ -24,7 +24,7 @@ const slides = [
     key: '3',
     title: 'Tiết kiệm thông minh',
     description: 'Đặt ngân sách, theo dõi mục tiêu tiết kiệm',
-    iconName: 'target',
+    iconName: 'locate-outline',
   },
 ];
 

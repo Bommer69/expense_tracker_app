@@ -169,7 +169,7 @@ function OnboardingInline({ onFinish }) {
   const slides = [
     { iconName: 'wallet', title: 'Chào mừng!', desc: 'Quản lý chi tiêu thông minh với AI tích hợp' },
     { iconName: 'bar-chart', title: 'Theo dõi chi tiêu', desc: 'Thêm giao dịch nhanh chóng, tự động phân loại' },
-    { iconName: 'target', title: 'Tiết kiệm thông minh', desc: 'Đặt ngân sách, theo dõi mục tiêu' },
+    { iconName: 'locate-outline', title: 'Tiết kiệm thông minh', desc: 'Đặt ngân sách, theo dõi mục tiêu' },
   ];
 
   const handleNext = () => {

@@ -185,6 +185,7 @@ export default function TransactionsScreen() {
       setSelectedCategory(created);
       setCatModalVisible(false);
       setNewCat({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
+      setTimeout(() => setModalVisible(true), 100);
     } catch (err) { Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể tạo danh mục'); }
   };
 
@@ -409,7 +410,7 @@ export default function TransactionsScreen() {
               {/* Category */}
               <View style={s.catHeader}>
                 <Text style={[s.sectionLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Danh mục (Nhấn giữ để xóa)</Text>
-                <TouchableOpacity onPress={() => setCatModalVisible(true)}><Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>+ Thêm mới</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => { setModalVisible(false); setTimeout(() => setCatModalVisible(true), 100); }}><Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>+ Thêm mới</Text></TouchableOpacity>
               </View>
               <View style={s.catGrid}>
                 {filteredCats.map(cat => (
@@ -444,7 +445,7 @@ export default function TransactionsScreen() {
               ))}
             </View>
             <View style={s.catModalBtns}>
-              <TouchableOpacity style={[s.catModalBtn, { borderColor: theme.border }]} onPress={() => setCatModalVisible(false)}>
+              <TouchableOpacity style={[s.catModalBtn, { borderColor: theme.border }]} onPress={() => { setCatModalVisible(false); setTimeout(() => setModalVisible(true), 100); }}>
                 <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.catModalBtn, { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={handleCreateCategory}>

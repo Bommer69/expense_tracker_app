@@ -6,6 +6,37 @@ import Card from '../ui/Card';
 import SectionHeader from '../ui/SectionHeader';
 import LoadingIndicator from '../ui/LoadingIndicator';
 import EmptyState from '../ui/EmptyState';
+import { Ionicons } from '@expo/vector-icons';
+
+const ICON_MAP = {
+  '🍔': 'restaurant-outline',
+  '🚗': 'car-outline',
+  '🛍️': 'bag-outline',
+  '📄': 'document-text-outline',
+  '🎮': 'game-controller-outline',
+  '💊': 'medical-outline',
+  '📚': 'book-outline',
+  '💰': 'cash-outline',
+  '🎁': 'gift-outline',
+  '💵': 'wallet-outline',
+  '🏠': 'home-outline',
+  '✈️': 'airplane-outline',
+  '👕': 'shirt-outline',
+  '💻': 'laptop-outline',
+  '📱': 'phone-portrait-outline',
+  '🎬': 'film-outline',
+  '⚽': 'football-outline',
+  '🎵': 'musical-notes-outline',
+  '🐾': 'paw-outline',
+  '💡': 'bulb-outline',
+  '🔧': 'build-outline',
+  '📦': 'cube-outline',
+};
+
+function mapIcon(name) {
+  if (name && name.includes('-outline')) return name;
+  return ICON_MAP[name] || 'card-outline';
+}
 
 function TransactionRow({ tx }) {
   const { theme } = useTheme();
@@ -18,11 +49,15 @@ function TransactionRow({ tx }) {
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
         <View style={{
-          width: 44, height: 44, borderRadius: 12,
+          width: 40, height: 40, borderRadius: 12,
           justifyContent: 'center', alignItems: 'center',
-          backgroundColor: isIncome ? theme.success + '10' : theme.error + '10',
+          backgroundColor: isIncome ? theme.success + '12' : theme.error + '12',
         }}>
-          <Text style={{ fontSize: 20 }}>{tx.categoryId?.icon || '💰'}</Text>
+          <Ionicons
+            name={mapIcon(tx.categoryId?.icon) || 'card-outline'}
+            size={18}
+            color={isIncome ? theme.success : theme.error}
+          />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 15, fontWeight: '500', marginBottom: 2, color: theme.text }} numberOfLines={1}>
