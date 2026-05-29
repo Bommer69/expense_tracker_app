@@ -71,6 +71,26 @@ const toolDeclarations = [
       },
     },
   },
+  {
+    name: 'get_forecast',
+    description: 'Dự báo chi tiêu cuối tháng dựa trên tốc độ chi tiêu hiện tại (daily run-rate). Cảnh báo nếu có nguy cơ vượt ngân sách.',
+    parameters: {
+      type: 'object',
+      properties: {
+        month: { type: 'string', description: 'Tháng cần dự báo, format YYYY-MM. Mặc định tháng hiện tại.' },
+      },
+    },
+  },
+  {
+    name: 'detect_anomalies',
+    description: 'Phát hiện chi tiêu bất thường: danh mục tăng đột biến so với tháng trước, giao dịch trùng lặp, hoặc dấu hiệu bất thường khác.',
+    parameters: {
+      type: 'object',
+      properties: {
+        month: { type: 'string', description: 'Tháng cần kiểm tra, format YYYY-MM. Mặc định tháng hiện tại.' },
+      },
+    },
+  },
 ];
 
 // Tool implementations — each returns a string for the AI to read
@@ -151,6 +171,146 @@ const toolFunctions = {
       rows.push(`  ${m}: Thu ${vnd(income)} | Chi ${vnd(expense)} | Dư ${vnd(income - expense)}`);
     }
     return `Xu hướng ${n} tháng gần đây:\n${rows.join('\n')}`;
+  },
+
+  async get_forecast({ month }, userId) {
+    const m = month || currentMonth();
+    const { start, end } = monthRange(m);
+    const today = new Date();
+    const daysPassed = today.getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+    // Lấy giao dịch tháng hiện tại
+    const txs = await Transaction.find({ userId, date: { $gte: start, $lt: end } });
+    const expenses = txs.filter(t => t.type === 'expense');
+    const totalExpense = expenses.reduce((s, t) => s + t.amount, 0);
+    const incomes = txs.filter(t => t.type === 'income');
+    const totalIncome = incomes.reduce((s, t) => s + t.amount, 0);
+
+    const dailyAvg = daysPassed > 0 ? Math.round(totalExpense / daysPassed) : 0;
+    const projectedTotal = dailyAvg * daysInMonth;
+
+    // So với ngân sách
+    const budgets = await Budget.find({ userId, month: m });
+    const budgetTotal = budgets.reduce((s, b) => s + (b.amount || 0), 0);
+    const spentTotal = budgets.reduce((s, b) => s + (b.spent || 0), 0);
+
+    let warning = '';
+    if (budgetTotal > 0 && projectedTotal > budgetTotal) {
+      const overAmount = projectedTotal - budgetTotal;
+      warning = `\n⚠️ **CẢNH BÁO**: Dự kiến cuối tháng chi ${vnd(projectedTotal)}, vượt ${vnd(overAmount)} so với tổng ngân sách (${vnd(budgetTotal)})!`;
+    } else if (budgetTotal > 0 && projectedTotal > budgetTotal * 0.85) {
+      warning = `\n⚡ **LƯU Ý**: Dự kiến cuối tháng chi ${vnd(projectedTotal)}, đã gần chạm ngân sách (${vnd(budgetTotal)}).`;
+    }
+
+    // Đánh giá trạng thái
+    let status = '🟢 Ổn định';
+    if (budgetTotal > 0 && projectedTotal > budgetTotal) status = '🔴 Nguy cơ vượt ngân sách';
+    else if (dailyAvg > 0 && (totalIncome - totalExpense) < 0) status = '🟡 Chi nhiều hơn thu';
+
+    let result = `📊 **DỰ BÁO THÁNG ${m}**\n`;
+    result += `├ 📅 Đã qua: ${daysPassed}/${daysInMonth} ngày\n`;
+    result += `├ 💸 Đã chi: ${vnd(totalExpense)}\n`;
+    result += `├ 📈 Trung bình/ngày: ${vnd(dailyAvg)}\n`;
+    result += `├ 🔮 Dự kiến cuối tháng: ${vnd(projectedTotal)}\n`;
+    if (budgetTotal > 0) {
+      result += `├ 📋 Tổng ngân sách: ${vnd(budgetTotal)} (đã dùng ${vnd(spentTotal)})\n`;
+    }
+    result += `└ 🏁 Trạng thái: ${status}`;
+    result += warning;
+
+    return result;
+  },
+
+  async detect_anomalies({ month }, userId) {
+    const m = month || currentMonth();
+    const anomalies = [];
+
+    // Lấy tháng trước
+    const d = new Date(`${m}-01`);
+    d.setMonth(d.getMonth() - 1);
+    const prevMonth = d.toISOString().slice(0, 7);
+
+    const [current, previous] = await Promise.all([
+      Transaction.find({ userId, date: { $gte: monthRange(m).start, $lt: monthRange(m).end } }).populate('categoryId'),
+      Transaction.find({ userId, date: { $gte: monthRange(prevMonth).start, $lt: monthRange(prevMonth).end } }).populate('categoryId'),
+    ]);
+
+    const currentExpenses = current.filter(t => t.type === 'expense');
+    const prevExpenses = previous.filter(t => t.type === 'expense');
+
+    // 1. So sánh chi tiêu theo danh mục với tháng trước
+    const currCat = {};
+    currentExpenses.forEach(t => {
+      const name = t.categoryId?.name || 'Khác';
+      currCat[name] = (currCat[name] || 0) + t.amount;
+    });
+    const prevCat = {};
+    prevExpenses.forEach(t => {
+      const name = t.categoryId?.name || 'Khác';
+      prevCat[name] = (prevCat[name] || 0) + t.amount;
+    });
+
+    const allCats = new Set([...Object.keys(currCat), ...Object.keys(prevCat)]);
+    for (const cat of allCats) {
+      const curr = currCat[cat] || 0;
+      const prev = prevCat[cat] || 0;
+      if (prev > 0 && curr > prev * 1.5) {
+        anomalies.push({
+          type: 'increase',
+          icon: '🔺',
+          message: `**${cat}** tăng **${Math.round((curr - prev) / prev * 100)}%** so với tháng trước (${vnd(prev)} → ${vnd(curr)})`,
+        });
+      } else if (prev > 0 && curr < prev * 0.5 && curr > 0) {
+        anomalies.push({
+          type: 'decrease',
+          icon: '✅',
+          message: `**${cat}** giảm **${Math.round((prev - curr) / prev * 100)}%** so với tháng trước — tiết kiệm tốt! (${vnd(prev)} → ${vnd(curr)})`,
+        });
+      }
+    }
+
+    // 2. Phát hiện giao dịch trùng lặp (cùng số tiền, cùng mô tả, cùng ngày)
+    const seen = new Map();
+    currentExpenses.forEach(t => {
+      const dateStr = t.date.toISOString().slice(0, 10);
+      const key = `${t.amount}-${(t.description || '').trim().toLowerCase()}-${dateStr}`;
+      const existing = seen.get(key);
+      if (existing) {
+        anomalies.push({
+          type: 'duplicate',
+          icon: '🔁',
+          message: `Giao dịch trùng: **"${t.description || 'Không mô tả'}"** ${vnd(t.amount)} ngày **${dateStr}** (xuất hiện ${existing + 1} lần)`,
+        });
+        seen.set(key, existing + 1);
+      } else {
+        seen.set(key, 1);
+      }
+    });
+
+    // 3. Tổng quan
+    const currTotalExpense = currentExpenses.reduce((s, t) => s + t.amount, 0);
+    const prevTotalExpense = prevExpenses.reduce((s, t) => s + t.amount, 0);
+
+    if (anomalies.length === 0) {
+      return `✅ **Không phát hiện bất thường** tháng ${m} so với tháng ${prevMonth}.\nTổng chi: ${vnd(currTotalExpense)} (tháng trước: ${vnd(prevTotalExpense)})`;
+    }
+
+    let result = `🔍 **PHÂN TÍCH BẤT THƯỜNG THÁNG ${m}**\n`;
+    result += `Tổng chi: ${vnd(currTotalExpense)} | Tháng trước: ${vnd(prevTotalExpense)}\n\n`;
+
+    const groups = { increase: '📈 Chi tiêu tăng', decrease: '📉 Chi tiêu giảm', duplicate: '🔁 Giao dịch trùng' };
+    for (const [typeKey, title] of Object.entries(groups)) {
+      const items = anomalies.filter(a => a.type === typeKey);
+      if (items.length > 0) {
+        result += `${title}:\n`;
+        items.forEach(a => { result += `${a.icon} ${a.message}\n`; });
+        result += '\n';
+      }
+    }
+
+    result += `📌 Tổng cộng: **${anomalies.length}** điểm bất thường được phát hiện.`;
+    return result;
   },
 };
 
