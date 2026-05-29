@@ -26,8 +26,9 @@ app.use(cors(allowedOrigin ? {
   origin: allowedOrigin,
   credentials: true,
 } : {}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Tăng limit để nhận ảnh base64 (mặc định 100KB là quá nhỏ)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting cho auth routes (chống brute force)
 const authLimiter = rateLimit({

@@ -111,7 +111,7 @@ export default function ProfileScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7,
+        quality: 0.4, // Giảm quality để tránh payload quá lớn
       });
 
       if (result.canceled) return;
@@ -126,6 +126,13 @@ export default function ProfileScreen() {
         encoding: 'base64',
       });
 
+      // Kiểm tra kích thước trước khi gửi (tối đa 4MB base64 ≈ 3MB ảnh thật)
+      if (base64.length > 4 * 1024 * 1024) {
+        Alert.alert('Ảnh quá lớn', 'Vui lòng chọn ảnh nhỏ hơn hoặc giảm chất lượng.');
+        setSubmitting(false);
+        return;
+      }
+
       // Xác định MIME type từ uri
       const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
       const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
@@ -137,8 +144,9 @@ export default function ProfileScreen() {
 
       Alert.alert('✅', 'Cập nhật ảnh đại diện thành công!');
     } catch (err) {
-      console.error('Avatar pick error:', err);
-      Alert.alert('Lỗi', err?.error || 'Không thể cập nhật ảnh đại diện');
+      console.error('Avatar pick error:', err?.response?.data || err);
+      const msg = err?.error || err?.response?.data?.error || 'Không thể cập nhật ảnh đại diện';
+      Alert.alert('Lỗi', msg);
     } finally {
       setSubmitting(false);
     }
