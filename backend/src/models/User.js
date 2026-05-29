@@ -8,7 +8,12 @@ const userSchema = new mongoose.Schema({
   settings: {
     currency: { type: String, default: 'VND' },
     theme: { type: String, default: 'light' }
-  }
+  },
+  pushTokens: [{
+    token: { type: String, required: true },
+    platform: { type: String, enum: ['ios', 'android'], default: 'android' },
+    createdAt: { type: Date, default: Date.now },
+  }],
 }, { timestamps: true });
 
 // Hash password before saving

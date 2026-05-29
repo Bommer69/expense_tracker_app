@@ -8,6 +8,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { getUserId } = require('../utils/auth');
 const { generateDailySummary, evaluateAnomalies } = require('../services/aiTriggerService');
+const { sendPushToUser } = require('../services/pushService');
 
 /**
  * GET /api/notifications
@@ -217,4 +218,119 @@ async function cronEvaluateAnomalies(req, res) {
   }
 }
 
-module.exports = { getAll, getUnreadCount, markRead, markAllRead, remove, clearAll, cronDailySummary, cronEvaluateAnomalies };
+// ======================== PUSH TOKEN ENDPOINTS ========================
+
+/**
+ * POST /api/notifications/push-token
+ * Đăng ký push token cho thiết bị
+ */
+async function registerPushToken(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { token, platform } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    // Kiểm tra token đã tồn tại chưa (tránh duplicate)
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const existingToken = user.pushTokens.find(
+      t => t.token === token
+    );
+
+    if (existingToken) {
+      // Cập nhật platform nếu khác
+      if (existingToken.platform !== platform) {
+        existingToken.platform = platform || 'android';
+        existingToken.createdAt = new Date();
+        await user.save();
+      }
+      return res.json({ success: true, message: 'Token already registered' });
+    }
+
+    // Thêm token mới
+    user.pushTokens.push({
+      token,
+      platform: platform || 'android',
+      createdAt: new Date(),
+    });
+
+    // Giới hạn số token tối đa (tránh rác)
+    if (user.pushTokens.length > 10) {
+      user.pushTokens = user.pushTokens.slice(-10);
+    }
+
+    await user.save();
+
+    console.log(`[PushToken] Registered for user ${userId} (${platform || 'android'})`);
+
+    res.json({ success: true, message: 'Push token registered' });
+  } catch (err) {
+    console.error('[PushToken] Register error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * DELETE /api/notifications/push-token
+ * Xoá push token của thiết bị hiện tại
+ */
+async function removePushToken(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Hỗ trợ token từ body hoặc query params (dự phòng)
+    const token = req.body?.token || req.query?.token;
+
+    const updateQuery = token
+      ? { $pull: { pushTokens: { token } } }
+      // Nếu không truyền token cụ thể, xoá tất cả (khi logout)
+      : { $set: { pushTokens: [] } };
+
+    await User.updateOne({ _id: userId }, updateQuery);
+
+    console.log(`[PushToken] Removed for user ${userId}${token ? ' (specific token)' : ' (all tokens)'}`);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[PushToken] Remove error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * GET /api/notifications/push-tokens
+ * Lấy danh sách push tokens của user (debug)
+ */
+async function getPushTokens(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const user = await User.findById(userId).select('pushTokens');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    res.json({
+      tokens: user.pushTokens.map(t => ({
+        platform: t.platform,
+        createdAt: t.createdAt,
+        masked: t.token.slice(0, 10) + '...',
+      })),
+    });
+  } catch (err) {
+    console.error('[PushToken] Get tokens error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = {
+  getAll, getUnreadCount, markRead, markAllRead, remove, clearAll,
+  cronDailySummary, cronEvaluateAnomalies,
+  registerPushToken, removePushToken, getPushTokens,
+};

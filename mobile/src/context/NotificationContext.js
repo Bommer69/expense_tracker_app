@@ -1,6 +1,14 @@
 import React, { createContext, useState, useEffect, useCallback, useRef, useContext } from 'react';
 import { AuthContext } from './AuthContext';
 import { notificationsAPI } from '../api/notifications';
+import {
+  configureNotificationHandler,
+  createNotificationChannels,
+  registerForPushNotificationsAsync,
+  syncPushTokenToBackend,
+  addNotificationResponseListener,
+  removePushTokenFromBackend,
+} from '../services/pushNotifications';
 
 export const NotificationContext = createContext();
 
@@ -9,6 +17,7 @@ export function NotificationProvider({ children }) {
   const [latestNotification, setLatestNotification] = useState(null);
   const pollingRef = useRef(null);
   const lastKnownCountRef = useRef(0);
+  const pushInitRef = useRef(false);
 
   const { isAuthenticated } = useContext(AuthContext);
 
@@ -44,6 +53,56 @@ export function NotificationProvider({ children }) {
   const dismissLatestNotification = useCallback(() => {
     setLatestNotification(null);
   }, []);
+
+  // ===== Khởi tạo Push Notification =====
+  useEffect(() => {
+    if (!isAuthenticated) {
+      if (pushInitRef.current) {
+        removePushTokenFromBackend();
+        pushInitRef.current = false;
+      }
+      return;
+    }
+
+    if (pushInitRef.current) return;
+    pushInitRef.current = true;
+
+    async function initPushNotifications() {
+      try {
+        // 1. Cấu hình handler (hiện alert khi app foreground)
+        configureNotificationHandler();
+
+        // 2. Tạo channel cho Android
+        await createNotificationChannels();
+
+        // 3. Lấy push token từ thiết bị
+        const token = await registerForPushNotificationsAsync();
+
+        // 4. Gửi token lên backend
+        if (token) {
+          await syncPushTokenToBackend(token);
+        }
+      } catch (err) {
+        console.error('[NotificationContext] Push init error:', err.message);
+      }
+    }
+
+    initPushNotifications();
+  }, [isAuthenticated]);
+
+  // Lắng nghe user nhấn vào notification
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const sub = addNotificationResponseListener((data) => {
+      // Có thể điều hướng đến màn hình chi tiết nếu cần
+      console.log('[NotificationContext] User opened notification with data:', data);
+    });
+
+    return () => {
+      sub?.remove();
+    };
+  }, [isAuthenticated]);
 
   // Polling định kỳ
   useEffect(() => {

@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl, useContext } from 'react-native';
+import { useContext } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAccounts } from '../../src/hooks/useAccounts';

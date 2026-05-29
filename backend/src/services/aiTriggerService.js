@@ -1,8 +1,8 @@
 /**
  * AI Trigger Service
  *
- * Phân tích giao dịch, biến động số dư, ngân sách và gọi Gemini để tạo
- * thông báo thông minh gửi đến người dùng.
+ * Phân tích giao dịch, biến động số dư, ngân sách và tạo
+ * thông báo gửi đến người dùng.
  */
 
 const mongoose = require('mongoose');
@@ -11,7 +11,6 @@ const Account = require('../models/Account');
 const Budget = require('../models/Budget');
 const Category = require('../models/Category');
 const Notification = require('../models/Notification');
-const { classifyTransaction } = require('./aiClassifier');
 
 // ======================== CẤU HÌNH ========================
 
@@ -117,95 +116,6 @@ async function getBalanceBefore(userId, beforeDate) {
   return result.length > 0 ? result[0].balance : 0;
 }
 
-// ======================== AI GENERATION ========================
-
-/**
- * Gọi Gemini để phân tích giao dịch và tạo thông báo
- * Nếu không có Gemini, dùng template mặc định
- */
-let geminiModel = null;
-
-function getGeminiModel() {
-  if (geminiModel) return geminiModel;
-  try {
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-    if (!apiKey || apiKey === 'your-gemini-api-key-here') return null;
-    const genAI = new GoogleGenerativeAI(apiKey);
-    geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    return geminiModel;
-  } catch {
-    return null;
-  }
-}
-
-async function generateAIMessage(type, context) {
-  const model = getGeminiModel();
-  if (!model) return null; // fallback to template
-
-  const promptTemplates = {
-    large_transaction: `Bạn là trợ lý tài chính thông minh. Một giao dịch lớn vừa được thực hiện.
-
-Thông tin:
-- Loại: ${context.type === 'expense' ? 'Chi tiêu' : 'Thu nhập'}
-- Số tiền: ${vnd(context.amount)}
-- Danh mục: ${context.categoryName || 'Không xác định'}
-- Mô tả: ${context.description || 'Không có mô tả'}
-- Số dư hiện tại: ${vnd(context.balanceAfter)}
-
-Viết 1-2 câu bằng tiếng Việt, thân thiện, có emoji, phân tích ngắn gọn về giao dịch này. ${context.type === 'expense' ? 'Đưa ra lời khuyên nếu cần.' : 'Chúc mừng nếu là thu nhập.'}
-Tối đa 120 ký tự.`,
-
-    balance_change: `Bạn là trợ lý tài chính. Biến động số dư vừa xảy ra.
-
-Thông tin:
-- Thay đổi: ${context.percentage >= 0 ? '+' : ''}${context.percentage}%
-- Số tiền thay đổi: ${vnd(Math.abs(context.amount))}
-- Số dư trước: ${vnd(context.balanceBefore)}
-- Số dư sau: ${vnd(context.balanceAfter)}
-- Lý do chính: ${context.reason || 'giao dịch phát sinh'}
-
-Viết 1-2 câu bằng tiếng Việt, có emoji, nhận xét về biến động này. Nếu số dư giảm mạnh, đưa ra lời khuyên.
-Tối đa 120 ký tự.`,
-
-    budget_alert: `Bạn là trợ lý tài chính. Ngân sách đang gần hoặc vượt hạn mức.
-
-Thông tin:
-- Danh mục: ${context.categoryName}
-- Đã chi: ${vnd(context.spent)}
-- Hạn mức: ${vnd(context.budget)}
-- Phần trăm: ${context.percent}%
-- Trạng thái: ${context.percent >= 100 ? 'ĐÃ VƯỢT' : 'GẦN ĐẠT'}
-
-Viết 1-2 câu bằng tiếng Việt, có emoji, cảnh báo và gợi ý điều chỉnh chi tiêu.
-Tối đa 120 ký tự.`,
-
-    anomaly: `Bạn là trợ lý tài chính. Phát hiện bất thường trong chi tiêu.
-
-Thông tin:
-- Danh mục: ${context.categoryName}
-- Tháng này: ${vnd(context.currentAmount)}
-- Tháng trước: ${vnd(context.previousAmount)}
-- Tăng/Giảm: ${context.changePercent >= 0 ? '+' : ''}${context.changePercent}%
-
-Viết 1-2 câu bằng tiếng Việt, có emoji, phân tích sự bất thường.
-Tối đa 120 ký tự.`,
-  };
-
-  const prompt = promptTemplates[type];
-  if (!prompt) return null;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    // Clean và giới hạn độ dài
-    return text.trim().substring(0, 200);
-  } catch (err) {
-    console.log('[aiTrigger] Gemini generation failed:', err.message);
-    return null;
-  }
-}
-
 // ======================== TEMPLATE FALLBACK ========================
 
 function getTemplateMessage(type, context) {
@@ -230,6 +140,13 @@ function getTemplateMessage(type, context) {
         ? `Danh mục "${context.categoryName}" đã vượt hạn mức! Đã chi ${vnd(context.spent)}/${vnd(context.budget)} (${context.percent}%).`
         : `Danh mục "${context.categoryName}" đã chi ${context.percent}% hạn mức (${vnd(context.spent)}/${vnd(context.budget)}). Hãy cân nhắc!`,
       severity: context.percent >= 100 ? 'critical' : 'warning',
+    },
+    transaction_update: {
+      title: context.type === 'expense' ? '💸 Chi tiền' : '💰 Thu nhập',
+      message: context.type === 'expense'
+        ? `Bạn vừa chi ${vnd(context.amount)}${context.description ? ` cho "${context.description}"` : ''} (${context.categoryName}). Số dư hiện tại: ${vnd(context.balanceAfter)}.`
+        : `Bạn vừa nhận ${vnd(context.amount)}${context.description ? ` từ "${context.description}"` : ''} (${context.categoryName}). Số dư hiện tại: ${vnd(context.balanceAfter)}.`,
+      severity: 'info',
     },
     anomaly: {
       title: '🔍 Phát hiện bất thường',
@@ -275,44 +192,28 @@ async function evaluateTransaction(transaction) {
     const description = transaction.description || '';
     const balanceAfter = await getCurrentBalance(userId);
 
-    // ===== 1. Tạo template notification cho các loại =====
-    const [template, largeContext] = amount >= CONFIG.largeTransactionThreshold() && !(await isOnCooldown(userId, 'large_transaction'))
-      ? [getTemplateMessage('large_transaction', { type, amount, categoryName, description, balanceAfter }), { type, amount, categoryName, description, balanceAfter }]
-      : [null, null];
+    // ===== 1. Thông báo giao dịch lớn =====
+    if (amount >= CONFIG.largeTransactionThreshold()) {
+      if (!await isOnCooldown(userId, 'large_transaction')) {
+        const tmpl = getTemplateMessage('large_transaction', { type, amount, categoryName, description, balanceAfter });
 
-    // Tạo notification giao dịch lớn NGAY LẬP TỨC với template (không chờ AI)
-    if (template) {
-      const notif = await Notification.create({
-        userId,
-        type: 'large_transaction',
-        severity: template.severity,
-        title: template.title,
-        message: template.message,
-        aiGenerated: false,
-        data: {
-          transactionId: transaction._id,
-          categoryId: transaction.categoryId?._id,
-          amount,
-          balanceAfter,
-          extra: { type, description, categoryName },
-        },
-      });
-      console.log(`[aiTrigger] large_transaction notification created for user ${userId}`);
-
-      // Enrich với AI không đồng bộ (không block luồng chính)
-      generateAIMessage('large_transaction', largeContext).then(async (aiMessage) => {
-        if (aiMessage && notif._id) {
-          await Notification.findByIdAndUpdate(notif._id, {
-            title: '💸 AI phân tích giao dịch lớn',
-            message: aiMessage,
-            aiGenerated: true,
-            aiAnalysis: aiMessage,
-          });
-          console.log(`[aiTrigger] large_transaction enriched with AI for user ${userId}`);
-        }
-      }).catch(err => {
-        console.log('[aiTrigger] large_transaction AI enrichment failed:', err.message);
-      });
+        await Notification.create({
+          userId,
+          type: 'large_transaction',
+          severity: tmpl.severity,
+          title: tmpl.title,
+          message: tmpl.message,
+          aiGenerated: false,
+          data: {
+            transactionId: transaction._id,
+            categoryId: transaction.categoryId?._id,
+            amount,
+            balanceAfter,
+            extra: { type, description, categoryName },
+          },
+        });
+        console.log(`[aiTrigger] large_transaction notification created for user ${userId}`);
+      }
     }
 
     // ===== 2. Thông báo biến động số dư (cho mọi giao dịch) =====
@@ -332,8 +233,6 @@ async function evaluateTransaction(transaction) {
       });
 
       if (!recentTxNotif) {
-        const reason = `${type === 'expense' ? 'Chi' : 'Thu'} ${vnd(amount)} - ${categoryName}`;
-        const direction = type === 'expense' ? 'giảm' : 'tăng';
         const emoji = type === 'expense' ? '💸' : '💰';
 
         const title = type === 'expense' ? `${emoji} Chi tiền` : `${emoji} Thu nhập`;
@@ -344,7 +243,7 @@ async function evaluateTransaction(transaction) {
         await Notification.create({
           userId,
           type: 'transaction_update',
-          severity: type === 'expense' ? 'info' : 'info',
+          severity: 'info',
           title,
           message,
           aiGenerated: false,
@@ -377,8 +276,7 @@ async function evaluateTransaction(transaction) {
 
         const template = getTemplateMessage('balance_change', context);
 
-        // Tạo notification NGAY với template, không chờ AI
-        const notif = await Notification.create({
+        await Notification.create({
           userId,
           type: 'balance_change',
           severity: template.severity,
@@ -394,21 +292,6 @@ async function evaluateTransaction(transaction) {
           },
         });
         console.log(`[aiTrigger] balance_change notification created for user ${userId}`);
-
-        // Enrich với AI không đồng bộ
-        generateAIMessage('balance_change', context).then(async (aiMessage) => {
-          if (aiMessage && notif._id) {
-            await Notification.findByIdAndUpdate(notif._id, {
-              title: '📊 AI nhận xét biến động số dư',
-              message: aiMessage,
-              aiGenerated: true,
-              aiAnalysis: aiMessage,
-            });
-            console.log(`[aiTrigger] balance_change enriched with AI for user ${userId}`);
-          }
-        }).catch(err => {
-          console.log('[aiTrigger] balance_change AI enrichment failed:', err.message);
-        });
       }
     }
 
@@ -451,17 +334,15 @@ async function evaluateBudgetForCategory(userId, categoryId, transaction) {
     if (percent >= CONFIG.budgetWarningPercent() && percent < 100) {
       if (!await isOnCooldown(userId, 'budget_alert')) {
         const context = { categoryName, spent, budget: budget.amount, percent };
-        let aiMessage = await generateAIMessage('budget_alert', context);
         const template = getTemplateMessage('budget_alert', context);
 
         await Notification.create({
           userId,
           type: 'budget_alert',
           severity: 'warning',
-          title: aiMessage ? `⚠️ AI: ${categoryName} sắp hết ngân sách` : template.title,
-          message: aiMessage || template.message,
-          aiGenerated: !!aiMessage,
-          aiAnalysis: aiMessage || null,
+          title: template.title,
+          message: template.message,
+          aiGenerated: false,
           data: {
             transactionId: transaction?._id,
             categoryId,
@@ -476,17 +357,15 @@ async function evaluateBudgetForCategory(userId, categoryId, transaction) {
     if (percent >= 100) {
       if (!await isOnCooldown(userId, 'budget_alert')) {
         const context = { categoryName, spent, budget: budget.amount, percent };
-        let aiMessage = await generateAIMessage('budget_alert', context);
         const template = getTemplateMessage('budget_alert', context);
 
         await Notification.create({
           userId,
           type: 'budget_alert',
           severity: 'critical',
-          title: aiMessage ? `🚨 AI: ${categoryName} đã vượt ngân sách!` : template.title,
-          message: aiMessage || template.message,
-          aiGenerated: !!aiMessage,
-          aiAnalysis: aiMessage || null,
+          title: template.title,
+          message: template.message,
+          aiGenerated: false,
           data: {
             transactionId: transaction?._id,
             categoryId,
@@ -546,18 +425,15 @@ async function evaluateAnomalies(userId) {
       if (prev > 0 && curr > prev * 1.5) {
         const changePercent = Math.round(((curr - prev) / prev) * 100);
         if (!await isOnCooldown(userId, 'anomaly')) {
-          const context = { categoryName: cat, currentAmount: curr, previousAmount: prev, changePercent };
-          let aiMessage = await generateAIMessage('anomaly', context);
-          const template = getTemplateMessage('anomaly', context);
+          const template = getTemplateMessage('anomaly', { categoryName: cat, currentAmount: curr, previousAmount: prev, changePercent });
 
           await Notification.create({
             userId,
             type: 'anomaly',
             severity: 'warning',
-            title: aiMessage ? `🔍 AI phát hiện: ${cat} tăng đột biến` : template.title,
-            message: aiMessage || template.message,
-            aiGenerated: !!aiMessage,
-            aiAnalysis: aiMessage || null,
+            title: template.title,
+            message: template.message,
+            aiGenerated: false,
             data: {
               amount: curr - prev,
               extra: { categoryName: cat, currentAmount: curr, previousAmount: prev, changePercent },
