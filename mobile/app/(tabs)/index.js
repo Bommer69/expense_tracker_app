@@ -108,8 +108,10 @@ export default function HomeScreen() {
         title="Hướng dẫn Tổng quan"
         guideItems={[
           { iconName: 'wallet', title: 'Số dư tổng', desc: 'Hiển thị tổng tài sản hiện tại của bạn trong tất cả các tài khoản.' },
-          { iconName: 'flash', title: 'Phím tắt', desc: 'Truy cập nhanh vào chức năng thêm thu/chi, trò chuyện với AI, và ngân sách.' },
-          { iconName: 'document-text', title: 'Gần đây', desc: 'Danh sách 5 giao dịch mới nhất bạn vừa thực hiện.' }
+          { iconName: 'flash', title: 'Thao tác nhanh', desc: 'Truy cập nhanh vào chức năng thêm thu/chi, trò chuyện với AI, và ngân sách.' },
+          { iconName: 'document-text', title: 'Giao dịch gần đây', desc: 'Danh sách 5 giao dịch mới nhất bạn vừa thực hiện.' },
+          { iconName: 'notifications-outline', title: 'Thông báo', desc: 'Nhấn vào chuông thông báo để xem các cảnh báo từ AI về biến động số dư, giao dịch lớn hoặc ngân sách.' },
+          { iconName: 'refresh-outline', title: 'Kéo để làm mới', desc: 'Kéo danh sách xuống để làm mới số dư và giao dịch mới nhất.' }
         ]}
       />
     </View>

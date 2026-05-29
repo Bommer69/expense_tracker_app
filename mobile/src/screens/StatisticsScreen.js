@@ -253,10 +253,11 @@ export default function StatisticsScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn Thống kê"
         guideItems={[
-          { iconName: 'calendar-outline', title: 'Bộ chọn tháng', desc: 'Dùng dấu mũi tên cạnh tên tháng để lùi/tiến xem thống kê của các tháng khác.' },
-          { iconName: 'bar-chart-outline', title: 'Tổng quan & Tiết kiệm', desc: 'So sánh mức Thu và Chi, đồng thời cho biết bạn đã tiết kiệm được bao nhiêu phần trăm thu nhập.' },
-          { iconName: 'pie-chart-outline', title: 'Phân tích danh mục', desc: 'Sử dụng công tắc Thu/Chi để xem phân bố tài chính. Thanh ngang hiển thị tỷ lệ tiền dùng cho từng danh mục.' },
-          { iconName: 'stats-chart-outline', title: 'Xu hướng ngày', desc: 'Biểu đồ cột đôi (Thu - Xanh lá, Chi - Đỏ) thể hiện cường độ giao dịch của bạn theo từng ngày.' }
+          { iconName: 'calendar-outline', title: 'Chọn tháng', desc: 'Dùng mũi tên trái/phải cạnh tháng để xem thống kê các tháng trước hoặc tháng tới.' },
+          { iconName: 'bar-chart-outline', title: 'Thu - Chi & Tiết kiệm', desc: 'Xem tổng thu, tổng chi và số tiền tiết kiệm được trong tháng kèm tỷ lệ phần trăm.' },
+          { iconName: 'save-outline', title: 'Mục tiêu tiết kiệm', desc: 'Thiết lập mục tiêu tiết kiệm cho tháng. Theo dõi tiến độ và nhận cảnh báo nếu bạn đang lệch mục tiêu.' },
+          { iconName: 'pie-chart-outline', title: 'Phân bố danh mục', desc: 'Bật/tắt giữa Thu và Chi để xem tỷ lệ phần trăm từng danh mục.' },
+          { iconName: 'stats-chart-outline', title: 'Xu hướng ngày', desc: 'Biểu đồ cột đôi (Thu - Xanh lá, Chi - Đỏ) thể hiện dòng tiền theo từng ngày trong tháng.' }
         ]}
       />
 

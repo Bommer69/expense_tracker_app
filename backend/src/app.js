@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
@@ -27,6 +28,10 @@ app.use(cors(allowedOrigin ? {
   credentials: true,
 } : {}));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Phục vụ file uploads (avatar)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Rate limiting cho auth routes (chống brute force)
 const authLimiter = rateLimit({

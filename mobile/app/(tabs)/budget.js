@@ -371,10 +371,12 @@ export default function BudgetScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn Ngân sách"
         guideItems={[
-          { iconName: 'wallet-outline', title: 'Tạo ngân sách', desc: 'Sử dụng nút (+) để tạo giới hạn chi tiêu cho từng danh mục trong một tháng cụ thể.' },
-          { iconName: 'color-palette-outline', title: 'Màu sắc cảnh báo', desc: 'Thanh tiến độ sẽ có màu Xanh (an toàn), Vàng (sắp hết) hoặc Đỏ (vượt ngân sách) tùy mức tiêu xài của bạn.' },
-          { iconName: 'calendar-outline', title: 'Quản lý theo tháng', desc: 'Sử dụng phím mũi tên ở trên cùng để xem lại ngân sách của các tháng trước.' },
-          { iconName: 'trash-outline', title: 'Xóa', desc: 'Nhấn vào biểu tượng thùng rác ở góc trên bên phải của mỗi mục để xóa ngân sách đã thiết lập.' }
+          { iconName: 'wallet-outline', title: 'Tổng quan ngân sách', desc: 'Đầu trang hiển thị tổng ngân sách, tổng đã chi và số tiền còn lại kèm thanh tiến độ tổng.' },
+          { iconName: 'add-circle-outline', title: 'Tạo ngân sách', desc: 'Dùng nút (+) để đặt giới hạn chi tiêu cho từng danh mục trong tháng. Bạn có thể chọn tháng áp dụng.' },
+          { iconName: 'color-palette-outline', title: 'Cảnh báo bằng màu sắc', desc: 'Thanh tiến độ Xanh (an toàn), Vàng (sắp hết), Đỏ (vượt ngân sách).' },
+          { iconName: 'calendar-outline', title: 'Điều hướng tháng', desc: 'Dùng mũi tên trái/phải để xem lại ngân sách các tháng trước hoặc lập kế hoạch cho tháng tới.' },
+          { iconName: 'pricetag-outline', title: 'Thêm danh mục', desc: 'Trong form tạo ngân sách, bạn có thể tạo danh mục chi tiêu mới nếu cần.' },
+          { iconName: 'trash-outline', title: 'Xóa', desc: 'Dùng biểu tượng thùng rác để xóa ngân sách hoặc nhấn giữ danh mục để xóa (trừ danh mục mặc định).' }
         ]}
       />
 

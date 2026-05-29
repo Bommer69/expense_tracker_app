@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useCallback, useRef } from '
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_URL } from '../constants/api';
+import { authAPI } from '../api/auth';
 
 export const AuthContext = createContext();
 
@@ -116,6 +117,24 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const updateUser = useCallback(async (formData) => {
+    try {
+      const response = await authAPI.updateProfile(formData);
+      const updatedUser = response.data;
+
+      // Cập nhật state
+      setUser(prev => ({ ...prev, ...updatedUser }));
+
+      // Cập nhật AsyncStorage
+      await AsyncStorage.setItem(AUTH_KEYS.USER, JSON.stringify(updatedUser));
+
+      return updatedUser;
+    } catch (err) {
+      console.error('[AuthContext] updateUser error:', err.response?.data || err.message);
+      throw err.response?.data || err;
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await AsyncStorage.multiRemove([AUTH_KEYS.TOKEN, AUTH_KEYS.USER]);
@@ -138,6 +157,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         login,
         register,
+        updateUser,
         logout,
         checkStoredAuth,
       }}

@@ -16,6 +16,7 @@ import { useFocusEffect } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { vi } from 'date-fns/locale';
 import { notificationStyles as styles } from '../../src/styles/notificationStyles';
 
@@ -58,6 +59,7 @@ export default function NotificationsScreen() {
   } = useNotifications();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState(null);
+  const [guideVisible, setGuideVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -420,6 +422,9 @@ export default function NotificationsScreen() {
             </Text>
           </View>
           <View style={styles.headerActions}>
+            <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
+              <Ionicons name="book-outline" size={22} color={theme.textSecondary} />
+            </TouchableOpacity>
             {notifications.length > 0 && (
               <>
                 {unreadCount > 0 && (
@@ -474,6 +479,19 @@ export default function NotificationsScreen() {
 
       {/* Notification Detail Modal */}
       {renderDetailModal()}
+
+      <UserGuideModal
+        visible={guideVisible}
+        onClose={() => setGuideVisible(false)}
+        title="Hướng dẫn Thông báo"
+        guideItems={[
+          { iconName: 'notifications-outline', title: 'Thông báo AI', desc: 'AI tự động theo dõi tài chính và gửi thông báo khi có biến động số dư, giao dịch lớn, hoặc cảnh báo ngân sách.' },
+          { iconName: 'alert-circle-outline', title: 'Phân loại mức độ', desc: 'Mỗi thông báo có nhãn: Thông tin (xanh), Cảnh báo (cam), Quan trọng (đỏ).' },
+          { iconName: 'sparkles-outline', title: 'Phân tích AI', desc: 'Một số thông báo có kèm phân tích AI chi tiết — nhấn vào để xem đầy đủ.' },
+          { iconName: 'checkmark-done-outline', title: 'Đánh dấu đã đọc', desc: 'Nhấn vào thông báo để đọc chi tiết và tự động đánh dấu đã đọc. Dùng nút checkmark ở góc phải để đánh dấu tất cả.' },
+          { iconName: 'trash-outline', title: 'Xoá thông báo', desc: 'Nhấn giữ một thông báo để xoá, hoặc dùng nút thùng rác để xoá tất cả.' }
+        ]}
+      />
     </View>
   );
 }

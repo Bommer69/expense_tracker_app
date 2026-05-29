@@ -83,7 +83,7 @@ async function register(req, res) {
 
     res.json({
       token,
-      user: { id: user._id, email: user.email, name: user.name }
+      user: { id: user._id, email: user.email, name: user.name, avatar: user.avatar }
     });
   } catch (err) {
     console.error('[AUTH] Register error:', err);
@@ -122,7 +122,7 @@ async function login(req, res) {
 
     res.json({
       token,
-      user: { id: user._id, email: user.email, name: user.name }
+      user: { id: user._id, email: user.email, name: user.name, avatar: user.avatar }
     });
   } catch (err) {
     console.error('[AUTH] Login error:', err);
@@ -148,11 +148,60 @@ async function getMe(req, res) {
       return res.status(404).json({ error: 'Không tìm thấy người dùng' });
     }
     console.log('[AUTH] getMe successful for user:', user.email);
-    res.json({ id: user._id, email: user.email, name: user.name });
+    res.json({ id: user._id, email: user.email, name: user.name, avatar: user.avatar });
   } catch (err) {
     console.error('[AUTH] getMe error:', err);
     res.status(401).json({ error: 'Token không hợp lệ' });
   }
 }
 
-module.exports = { register, login, getMe };
+/**
+ * Cập nhật hồ sơ người dùng (tên + avatar)
+ */
+async function updateProfile(req, res) {
+  console.log('[AUTH] updateProfile request received');
+  try {
+    const { getUserId } = require('../utils/auth');
+    const userId = getUserId(req);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Phiên đăng nhập đã hết hạn' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    }
+
+    // Cập nhật tên nếu có
+    if (req.body.name && req.body.name.trim().length >= 2) {
+      user.name = req.body.name.trim();
+    }
+
+    // Cập nhật avatar nếu có file upload
+    if (req.file) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      user.avatar = `${baseUrl}/uploads/avatars/${req.file.filename}`;
+    }
+
+    // Cập nhật avatar nếu là URL (từ camera/mạng)
+    if (req.body.avatar) {
+      user.avatar = req.body.avatar;
+    }
+
+    await user.save();
+
+    console.log('[AUTH] updateProfile successful for user:', user.email);
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+    });
+  } catch (err) {
+    console.error('[AUTH] updateProfile error:', err);
+    res.status(500).json({ error: 'Không thể cập nhật hồ sơ. Vui lòng thử lại.' });
+  }
+}
+
+module.exports = { register, login, getMe, updateProfile };

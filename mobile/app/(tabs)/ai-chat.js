@@ -231,8 +231,10 @@ export default function AIChatScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn AI Chat"
         guideItems={[
-          { iconName: 'chatbubbles', title: 'Hỏi đáp AI', desc: 'Sử dụng công nghệ Google Gemini để phân tích dữ liệu tài chính thực tế của bạn.' },
-          { iconName: 'bulb', title: 'Gợi ý câu hỏi', desc: 'Bạn có thể ấn vào các nút gợi ý nếu không biết bắt đầu từ đâu.' },
+          { iconName: 'chatbubbles', title: 'Trò chuyện với AI', desc: 'Sử dụng Google Gemini để hỏi về tài chính, phân tích chi tiêu, hoặc xin lời khuyên tiết kiệm.' },
+          { iconName: 'bulb', title: 'Câu hỏi gợi ý', desc: 'Chưa biết hỏi gì? Ấn vào các nút gợi ý bên dưới ô nhập để bắt đầu.' },
+          { iconName: 'time-outline', title: 'Lịch sử hội thoại', desc: 'Tất cả tin nhắn được lưu lại trên server. Khi quay lại màn hình này, bạn sẽ thấy lịch sử trò chuyện trước đó.' },
+          { iconName: 'trash-outline', title: 'Xoá lịch sử', desc: 'Nhấn vào biểu tượng thùng rác trên đầu trang để xoá toàn bộ lịch sử chat.' },
           { iconName: 'lock-closed', title: 'Quyền riêng tư', desc: 'Chỉ các số liệu tóm tắt (không chứa thông tin nhạy cảm) mới được gửi cho AI phân tích.' }
         ]}
       />

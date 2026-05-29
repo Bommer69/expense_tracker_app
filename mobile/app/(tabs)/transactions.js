@@ -461,10 +461,13 @@ export default function TransactionsScreen() {
         onClose={() => setGuideVisible(false)}
         title="Hướng dẫn Giao dịch"
         guideItems={[
-          { iconName: 'add-circle-outline', title: 'Thêm Giao dịch', desc: 'Ấn dấu (+) ở góc dưới màn hình để tạo thu nhập hoặc chi tiêu. Bạn có thể chọn ngày trong quá khứ nếu lỡ quên nhập.' },
-          { iconName: 'pricetag-outline', title: 'Thêm Danh mục', desc: 'Khi đang thêm giao dịch, bạn có thể tự do tạo danh mục mới với biểu tượng icon và tên tùy thích.' },
-          { iconName: 'search-outline', title: 'Tìm kiếm & Bộ lọc', desc: 'Sử dụng thanh tìm kiếm để tìm chi tiêu, hoặc dùng bộ lọc (Thu nhập/Chi tiêu) để dễ quan sát hơn.' },
-          { iconName: 'trash-outline', title: 'Xóa giao dịch', desc: 'Vuốt sang trái trên giao dịch để hiện nút Sửa và Xóa.' }
+          { iconName: 'add-circle-outline', title: 'Thêm Giao dịch', desc: 'Ấn dấu (+) ở góc dưới để tạo thu nhập hoặc chi tiêu. Bạn có thể chọn ngày trong quá khứ nếu lỡ quên nhập.' },
+          { iconName: 'create-outline', title: 'Sửa giao dịch', desc: 'Nhấn vào giao dịch bất kỳ để sửa số tiền, mô tả, ngày tháng hoặc danh mục.' },
+          { iconName: 'calendar-outline', title: 'Chọn ngày linh hoạt', desc: 'Nhấn vào ô ngày để mở lịch chọn ngày cụ thể, hoặc dùng nút mũi tên để lùi/tới nhanh.' },
+          { iconName: 'pricetag-outline', title: 'Thêm Danh mục', desc: 'Trong form thêm giao dịch, bạn có thể tạo danh mục mới với biểu tượng và tên tùy thích.' },
+          { iconName: 'search-outline', title: 'Tìm kiếm & Bộ lọc', desc: 'Sử dụng thanh tìm kiếm để tìm giao dịch, hoặc dùng bộ lọc Thu nhập/Chi tiêu để dễ quan sát.' },
+          { iconName: 'sync-outline', title: 'Giao dịch định kỳ', desc: 'Nhấn vào biểu tượng đồng hồ ở góc phải để tạo giao dịch lặp lại hàng ngày/tuần/tháng.' },
+          { iconName: 'trash-outline', title: 'Xóa', desc: 'Nhấn giữ hoặc dùng nút xóa trên mỗi giao dịch (xác nhận trước khi xóa). Danh mục mặc định không thể xóa.' }
         ]}
       />
 
