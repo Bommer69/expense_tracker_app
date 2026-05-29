@@ -1,11 +1,14 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
-import { View, Platform } from 'react-native';
+import { View, Platform, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tabLayoutStyles as styles } from '../../src/styles/tabLayoutStyles';
+import { useNotifications } from '../../src/hooks/useNotifications';
+import { notificationStyles } from '../../src/styles/notificationStyles';
 
 export default function TabLayout() {
   const { theme } = useTheme();
+  const { unreadCount } = useNotifications();
 
   return (
     <Tabs
@@ -39,6 +42,24 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && { backgroundColor: color + '18' }]}>
               <Ionicons name="home" size={20} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Thông báo',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && { backgroundColor: color + '18' }]}>
+              <Ionicons name="notifications" size={20} color={color} />
+              {unreadCount > 0 && (
+                <View style={[notificationStyles.badgeContainer, { backgroundColor: theme.error || '#FF3B30' }]}>
+                  <Text style={notificationStyles.badgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </View>
           ),
         }}

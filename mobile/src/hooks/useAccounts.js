@@ -1,12 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { accountsAPI } from '../api';
+import { AuthContext } from '../context/AuthContext';
+
+function useAuthGuard() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) return { isAuthenticated: false, isLoading: true };
+  return { isAuthenticated: ctx.isAuthenticated, isLoading: ctx.isLoading };
+}
 
 export const useAccounts = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuthGuard();
 
   const fetchAccounts = useCallback(async () => {
+    if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
     try {
@@ -19,7 +28,7 @@ export const useAccounts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const createAccount = useCallback(async (data) => {
     setLoading(true);
@@ -61,6 +70,7 @@ export const useAccounts = () => {
   }, []);
 
   const getBalance = useCallback(async () => {
+    if (!isAuthenticated) return [];
     setLoading(true);
     try {
       const response = await accountsAPI.getBalance();
@@ -71,11 +81,12 @@ export const useAccounts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
     fetchAccounts();
-  }, [fetchAccounts]);
+  }, [fetchAccounts, isAuthenticated, authLoading]);
 
   return {
     accounts,

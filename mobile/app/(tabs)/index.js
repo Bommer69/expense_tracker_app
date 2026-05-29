@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAccounts } from '../../src/hooks/useAccounts';
 import { useTransactions, useTransactionSummary } from '../../src/hooks/useTransactions';
@@ -11,10 +11,14 @@ import BalanceCard from '../../src/components/home/BalanceCard';
 import QuickActions from '../../src/components/home/QuickActions';
 import RecentTransactions from '../../src/components/home/RecentTransactions';
 import { homeStyles as styles } from '../../src/styles/homeStyles';
+import { notificationStyles } from '../../src/styles/notificationStyles';
+import { useNotifications } from '../../src/hooks/useNotifications';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const router = useRouter();
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const { getBalance } = useAccounts();
   const { transactions, loading: tL, fetchTransactions } = useTransactions(5);
   const { summary, loading: sL, fetchSummary } = useTransactionSummary();
@@ -62,9 +66,26 @@ export default function HomeScreen() {
             <Text style={[styles.greeting, { color: theme.textSecondary }]}>{greeting()}</Text>
             <Text style={[styles.userName, { color: theme.text }]}>{user?.name || 'Bạn'}</Text>
           </View>
-          <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
-            <Ionicons name="book-outline" size={24} color="#6B7194" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/notifications')}
+              style={styles.infoBtn}
+            >
+              <View>
+                <Ionicons name="notifications-outline" size={24} color="#6B7194" />
+                {unreadCount > 0 && (
+                  <View style={[notificationStyles.badgeContainer, { backgroundColor: '#FF3B30', top: -2, right: -4 }]}>
+                    <Text style={notificationStyles.badgeText}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setGuideVisible(true)} style={styles.infoBtn}>
+              <Ionicons name="book-outline" size={24} color="#6B7194" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 

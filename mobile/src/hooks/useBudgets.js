@@ -1,13 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { budgetsAPI } from '../api';
 import { getCurrentMonth } from '../utils/formatters';
+import { AuthContext } from '../context/AuthContext';
+
+function useAuthGuard() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) return { isAuthenticated: false, isLoading: true };
+  return { isAuthenticated: ctx.isAuthenticated, isLoading: ctx.isLoading };
+}
 
 export const useBudgets = () => {
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuthGuard();
 
   const fetchBudgets = useCallback(async (month = getCurrentMonth()) => {
+    if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
     try {
@@ -20,7 +29,7 @@ export const useBudgets = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const createBudget = useCallback(async (data) => {
     setLoading(true);
@@ -64,8 +73,9 @@ export const useBudgets = () => {
   }, [fetchBudgets]);
 
   useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
     fetchBudgets();
-  }, [fetchBudgets]);
+  }, [fetchBudgets, isAuthenticated, authLoading]);
 
   return {
     budgets,

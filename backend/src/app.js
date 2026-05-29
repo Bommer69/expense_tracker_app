@@ -12,6 +12,7 @@ const aiRoutes = require('./routes/ai');
 const accountRoutes = require('./routes/accounts');
 const savingsGoalRoutes = require('./routes/savingsGoals');
 const recurringTransactionRoutes = require('./routes/recurringTransactions');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/savings-goals', savingsGoalRoutes);
 app.use('/api/recurring-transactions', recurringTransactionRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

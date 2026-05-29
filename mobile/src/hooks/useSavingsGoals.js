@@ -1,13 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { savingsGoalsAPI } from '../api';
 import { getCurrentMonth } from '../utils/formatters';
+import { AuthContext } from '../context/AuthContext';
+
+function useAuthGuard() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) return { isAuthenticated: false, isLoading: true };
+  return { isAuthenticated: ctx.isAuthenticated, isLoading: ctx.isLoading };
+}
 
 export const useSavingsGoals = () => {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuthGuard();
 
   const fetchGoals = useCallback(async (month = getCurrentMonth()) => {
+    if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
     try {
@@ -20,7 +29,7 @@ export const useSavingsGoals = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const saveGoal = useCallback(async (data) => {
     setLoading(true);
@@ -49,8 +58,9 @@ export const useSavingsGoals = () => {
   }, [fetchGoals]);
 
   useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
     fetchGoals();
-  }, [fetchGoals]);
+  }, [fetchGoals, isAuthenticated, authLoading]);
 
   return {
     goals,

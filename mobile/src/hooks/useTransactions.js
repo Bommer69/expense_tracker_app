@@ -1,13 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { transactionsAPI } from '../api';
 import { getCurrentMonth } from '../utils/formatters';
+import { AuthContext } from '../context/AuthContext';
+
+/**
+ * Auth-aware hook: chỉ fetch data khi user đã authenticated
+ */
+function useAuthGuard() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) return { isAuthenticated: false, isLoading: true };
+  return { isAuthenticated: ctx.isAuthenticated, isLoading: ctx.isLoading };
+}
 
 export const useTransactions = (limit = 50) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuthGuard();
 
   const fetchTransactions = useCallback(async (params = {}) => {
+    if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
     try {
@@ -20,7 +32,7 @@ export const useTransactions = (limit = 50) => {
     } finally {
       setLoading(false);
     }
-  }, [limit]);
+  }, [limit, isAuthenticated]);
 
   const createTransaction = useCallback(async (data) => {
     setLoading(true);
@@ -63,8 +75,9 @@ export const useTransactions = (limit = 50) => {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
     fetchTransactions();
-  }, [fetchTransactions]);
+  }, [fetchTransactions, isAuthenticated, authLoading]);
 
   return {
     transactions,
@@ -80,8 +93,10 @@ export const useTransactions = (limit = 50) => {
 export const useTransactionSummary = () => {
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpense: 0, byCategory: {} });
   const [loading, setLoading] = useState(false);
+  const { isAuthenticated, isLoading: authLoading } = useAuthGuard();
 
   const fetchSummary = useCallback(async (month = getCurrentMonth()) => {
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const response = await transactionsAPI.getSummary(month);
@@ -92,11 +107,12 @@ export const useTransactionSummary = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
     fetchSummary();
-  }, [fetchSummary]);
+  }, [fetchSummary, isAuthenticated, authLoading]);
 
   return {
     summary,

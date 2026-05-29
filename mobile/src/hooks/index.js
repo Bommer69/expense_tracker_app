@@ -4,3 +4,4 @@ export * from './useBudgets';
 export * from './useTheme';
 export * from './useCategories';
 export * from './useAccounts';
+export * from './useNotifications';

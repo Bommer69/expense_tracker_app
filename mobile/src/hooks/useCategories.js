@@ -1,12 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { categoriesAPI } from '../api';
+import { AuthContext } from '../context/AuthContext';
+
+function useAuthGuard() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) return { isAuthenticated: false, isLoading: true };
+  return { isAuthenticated: ctx.isAuthenticated, isLoading: ctx.isLoading };
+}
 
 export const useCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuthGuard();
 
   const fetchCategories = useCallback(async (type = null) => {
+    if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
     try {
@@ -19,7 +28,7 @@ export const useCategories = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const createCategory = useCallback(async (data) => {
     setLoading(true);
@@ -50,8 +59,9 @@ export const useCategories = () => {
   }, [fetchCategories]);
 
   useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
     fetchCategories();
-  }, [fetchCategories]);
+  }, [fetchCategories, isAuthenticated, authLoading]);
 
   return {
     categories,

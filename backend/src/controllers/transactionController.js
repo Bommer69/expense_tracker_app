@@ -8,6 +8,7 @@ const Account = require('../models/Account');
 const { getUserId } = require('../utils/auth');
 const { classifyTransaction } = require('../services/aiClassifier');
 const { generateRecurringTransactions } = require('../services/recurringGenerator');
+const { evaluateTransaction } = require('../services/aiTriggerService');
 
 async function getAll(req, res) {
   try {
@@ -99,6 +100,12 @@ async function create(req, res) {
     });
     
     await transaction.populate('categoryId');
+
+    // Trigger AI notification evaluation (bất đồng bộ, không block response)
+    evaluateTransaction(transaction).catch(err => {
+      console.error('[Transaction.create] AI trigger error:', err.message);
+    });
+
     res.json(transaction);
   } catch (err) {
     if (err.name === 'ValidationError') {
@@ -127,6 +134,11 @@ async function update(req, res) {
     if (!transaction) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
+
+    // Trigger AI notification evaluation khi cập nhật giao dịch
+    evaluateTransaction(transaction).catch(err => {
+      console.error('[Transaction.update] AI trigger error:', err.message);
+    });
     
     res.json(transaction);
   } catch (err) {
