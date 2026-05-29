@@ -18,6 +18,13 @@ export const budgetStyles = StyleSheet.create({
   progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 6 },
   progressFill: { height: '100%', borderRadius: 3 },
   progressLabel: { fontSize: 11, textAlign: 'right' },
+  editBtn: { padding: 4, marginTop: -2 },
+  headerMonthPopup: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 40,
+  },
   budgetItem: { paddingVertical: 16, borderBottomWidth: 0.5 },
   budgetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   budgetLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },

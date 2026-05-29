@@ -39,7 +39,7 @@ const MONTHS_VI = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Thán
 
 export default function BudgetScreen() {
   const { theme } = useTheme();
-  const { budgets, loading, fetchBudgets, createBudget, deleteBudget } = useBudgets();
+  const { budgets, loading, fetchBudgets, createBudget, updateBudget, deleteBudget } = useBudgets();
   const { categories, fetchCategories, createCategory, deleteCategory } = useCategories();
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -50,6 +50,9 @@ export default function BudgetScreen() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  // ---- CHỈNH SỬA: editBudgetTarget !== null => đang edit ----
+  const [editBudgetTarget, setEditBudgetTarget] = useState(null);
+
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [formData, setFormData] = useState({ amount: '', month: getCurrentMonth() });
   const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -57,6 +60,10 @@ export default function BudgetScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [newCat, setNewCat] = useState({ name: '', icon: 'cube-outline', color: '#6C5CE7' });
   const [viewMonth, setViewMonth] = useState(getCurrentMonth());
+
+  // ---- Month picker popup ở header ----
+  const [headerMonthPicker, setHeaderMonthPicker] = useState(false);
+  const [headerPickerYear, setHeaderPickerYear] = useState(new Date().getFullYear());
 
   // Refresh data when screen focuses
   useFocusEffect(
@@ -71,7 +78,6 @@ export default function BudgetScreen() {
   // Helper function to map old emoji icons to new Ionicons
   const mapIconToIonicons = (iconName) => {
     const iconMap = {
-      // Map old emoji names to Ionicons
       '🍔': 'restaurant-outline',
       '🚗': 'car-outline',
       '🛍️': 'bag-outline',
@@ -95,28 +101,73 @@ export default function BudgetScreen() {
       '🔧': 'build-outline',
       '📦': 'cube-outline'
     };
-    
-    // If it's already an Ionicon name (contains -outline), return it
-    if (iconName && iconName.includes('-outline')) {
-      return iconName;
-    }
-    
-    // Return mapped icon or default
+    if (iconName && iconName.includes('-outline')) return iconName;
     return iconMap[iconName] || 'pie-chart-outline';
   };
 
   const getStatusColor = (p) => p >= 100 ? theme.error : p >= 80 ? theme.warning : theme.success;
 
+  // ---- MỞ MODAL: Tạo mới hoặc Chỉnh sửa ----
+  const openCreateModal = () => {
+    setEditBudgetTarget(null);
+    setSelectedCategory(null);
+    setFormData({ amount: '', month: viewMonth });
+    setModalVisible(true);
+  };
+
+  const openEditModal = (budget) => {
+    setEditBudgetTarget(budget);
+    setSelectedCategory(budget.categoryId);
+    setFormData({ amount: formatNumberInput(String(budget.amount)), month: budget.month });
+    setModalVisible(true);
+  };
+
+  // ---- XỬ LÝ SUBMIT: Tạo mới hoặc Cập nhật + kiểm tra overspend ----
   const handleSubmit = async () => {
     const amount = parseFormattedNumber(formData.amount);
     if (!amount || amount <= 0) { Alert.alert('Lỗi', 'Nhập số tiền hợp lệ'); return; }
     if (!selectedCategory) { Alert.alert('Lỗi', 'Chọn danh mục'); return; }
+
+    const isEdit = editBudgetTarget !== null;
     setSubmitting(true);
     try {
-      await createBudget({ categoryId: selectedCategory._id, amount, month: formData.month });
-      setModalVisible(false); setFormData({ amount: '', month: getCurrentMonth() }); setSelectedCategory(null);
+      const payload = {
+        categoryId: selectedCategory._id,
+        amount,
+        month: formData.month,
+      };
+
+      let result;
+      if (isEdit) {
+        result = await updateBudget(editBudgetTarget._id, payload);
+      } else {
+        result = await createBudget(payload);
+      }
+
+      setModalVisible(false);
+      setEditBudgetTarget(null);
+      setFormData({ amount: '', month: getCurrentMonth() });
+      setSelectedCategory(null);
       setViewMonth(formData.month);
-    } catch (err) { Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể tạo ngân sách'); } finally { setSubmitting(false); }
+
+      // Kiểm tra overspend sau khi lưu
+      const spent = result?.spent || 0;
+      if (spent > amount) {
+        const overAmount = spent - amount;
+        if (Platform.OS === 'web') {
+          alert(`⚠️ Cảnh báo: "${selectedCategory.name}" đã vượt ngân sách ${formatCurrency(overAmount)}!`);
+        } else {
+          Alert.alert(
+            '⚠️ Vượt ngân sách!',
+            `"${selectedCategory.name}" đã chi ${formatCurrency(spent)}/${formatCurrency(amount)} (vượt ${formatCurrency(overAmount)}).\nHãy cân nhắc điều chỉnh lại chi tiêu.`
+          );
+        }
+      }
+    } catch (err) {
+      Alert.alert('Lỗi', getErrorMessage(err) || 'Không thể lưu ngân sách');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCreateCategory = async () => {
@@ -182,11 +233,21 @@ export default function BudgetScreen() {
     setViewMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   };
 
-  const selectMonth = (monthIdx) => {
+  // ---- Chọn tháng từ header picker ----
+  const selectHeaderMonth = (monthIdx) => {
+    const m = `${headerPickerYear}-${String(monthIdx + 1).padStart(2, '0')}`;
+    setViewMonth(m);
+    setHeaderMonthPicker(false);
+  };
+
+  const selectFormMonth = (monthIdx) => {
     const m = `${pickerYear}-${String(monthIdx + 1).padStart(2, '0')}`;
     setFormData({ ...formData, month: m });
     setShowMonthPicker(false);
   };
+
+  // ---- Modal xác nhận vượt ngân sách hiển thị ngay trên budget items ----
+  // (Đã có sẵn màu sắc cảnh báo, giờ thêm icon warning khi overspend)
 
   return (
     <View style={[s.container, { backgroundColor: theme.background }]}>
@@ -199,11 +260,58 @@ export default function BudgetScreen() {
           </TouchableOpacity>
         </View>
         <View style={s.monthNav}>
-          <TouchableOpacity onPress={() => navigateMonth(-1)} style={s.monthArrow}><Ionicons name="chevron-back" size={20} color={theme.primary} /></TouchableOpacity>
-          <Text style={[s.monthText, { color: theme.text }]}>{formatMonth(viewMonth)}</Text>
-          <TouchableOpacity onPress={() => navigateMonth(1)} style={s.monthArrow}><Ionicons name="chevron-forward" size={20} color={theme.primary} /></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigateMonth(-1)} style={s.monthArrow}>
+            <Ionicons name="chevron-back" size={20} color={theme.primary} />
+          </TouchableOpacity>
+          {/* Nhấn vào tháng để mở popup chọn tháng */}
+          <TouchableOpacity onPress={() => { setHeaderPickerYear(parseInt(viewMonth.split('-')[0])); setHeaderMonthPicker(true); }}>
+            <Text style={[s.monthText, { color: theme.text }]}>{formatMonth(viewMonth)}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigateMonth(1)} style={s.monthArrow}>
+            <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* Header Month Picker Popup */}
+      {headerMonthPicker && (
+        <>
+          {/* Overlay mờ */}
+          <TouchableOpacity 
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99, backgroundColor: 'rgba(0,0,0,0.4)' }}
+            activeOpacity={1} 
+            onPress={() => setHeaderMonthPicker(false)} 
+          />
+          {/* Popup chọn tháng */}
+          <View style={[s.headerMonthPopup, { backgroundColor: theme.background, position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100 }]}>
+            <View style={s.handle} />
+            <Text style={[s.modalTitle, { color: theme.text, textAlign: 'center', marginBottom: 16 }]}>Chọn tháng</Text>
+            <View style={s.yearNav}>
+              <TouchableOpacity onPress={() => setHeaderPickerYear(headerPickerYear - 1)}>
+                <Ionicons name="chevron-back" size={18} color={theme.primary} />
+              </TouchableOpacity>
+              <Text style={[{ color: theme.text, fontWeight: '600', fontSize: 15 }]}>{headerPickerYear}</Text>
+              <TouchableOpacity onPress={() => setHeaderPickerYear(headerPickerYear + 1)}>
+                <Ionicons name="chevron-forward" size={18} color={theme.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={s.monthGrid}>
+              {MONTHS_VI.map((name, idx) => {
+                const m = `${headerPickerYear}-${String(idx + 1).padStart(2, '0')}`;
+                const isSel = m === viewMonth;
+                return (
+                  <TouchableOpacity key={idx} style={[s.monthCell, isSel && { backgroundColor: theme.primary, borderRadius: 10 }]} onPress={() => selectHeaderMonth(idx)}>
+                    <Text style={[s.monthCellText, { color: theme.text }, isSel && { color: '#fff' }]}>{name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <TouchableOpacity style={[s.submitBtn, { backgroundColor: theme.primary, marginTop: 12 }]} onPress={() => setHeaderMonthPicker(false)}>
+              <Text style={s.submitText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}>
@@ -242,15 +350,22 @@ export default function BudgetScreen() {
         ) : budgets.map(item => {
           const percent = item.amount > 0 ? (item.spent / item.amount) * 100 : 0;
           const clampedPercent = Math.min(percent, 100);
+          const isOver = percent >= 100;
           return (
             <View key={item._id} style={[s.budgetItem, { borderBottomColor: theme.border + '40' }]}>
               <View style={s.budgetTop}>
                 <View style={s.budgetLeft}>
                   <Ionicons name={mapIconToIonicons(item.categoryId?.icon) || 'pie-chart-outline'} size={20} color={theme.text} />
                   <Text style={[s.budgetName, { color: theme.text }]}>{item.categoryId?.name || 'Danh mục'}</Text>
+                  {isOver && (
+                    <Ionicons name="warning-outline" size={18} color={theme.error} />
+                  )}
                 </View>
                 <View style={s.budgetTopRight}>
                   <Text style={[s.budgetPercent, { color: getStatusColor(percent) }]}>{Math.round(percent)}%</Text>
+                  <TouchableOpacity style={s.editBtn} onPress={() => openEditModal(item)}>
+                    <Ionicons name="create-outline" size={16} color={theme.primary} />
+                  </TouchableOpacity>
                   <TouchableOpacity style={s.deleteBtn} onPress={() => handleDeleteBudget(item)}>
                     <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
                   </TouchableOpacity>
@@ -269,18 +384,22 @@ export default function BudgetScreen() {
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity style={[s.fab, { backgroundColor: theme.primary }]} onPress={() => { setFormData({ amount: '', month: viewMonth }); setModalVisible(true); }}>
+      <TouchableOpacity style={[s.fab, { backgroundColor: theme.primary }]} onPress={openCreateModal}>
         <Text style={s.fabText}>+</Text>
       </TouchableOpacity>
 
-      {/* Create Budget Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
+      {/* Create / Edit Budget Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => { setModalVisible(false); setEditBudgetTarget(null); }}>
         <View style={s.overlay}>
           <View style={[s.modal, { backgroundColor: theme.background }]}>
             <View style={s.handle} />
             <View style={s.modalHead}>
-              <Text style={[s.modalTitle, { color: theme.text }]}>Tạo ngân sách</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close" size={20} color={theme.textSecondary} /></TouchableOpacity>
+              <Text style={[s.modalTitle, { color: theme.text }]}>
+                {editBudgetTarget ? `Sửa ngân sách` : `Tạo ngân sách`}
+              </Text>
+              <TouchableOpacity onPress={() => { setModalVisible(false); setEditBudgetTarget(null); }}>
+                <Ionicons name="close" size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Amount */}
@@ -308,7 +427,7 @@ export default function BudgetScreen() {
                       const m = `${pickerYear}-${String(idx + 1).padStart(2, '0')}`;
                       const isSel = m === formData.month;
                       return (
-                        <TouchableOpacity key={idx} style={[s.monthCell, isSel && { backgroundColor: theme.primary, borderRadius: 10 }]} onPress={() => selectMonth(idx)}>
+                        <TouchableOpacity key={idx} style={[s.monthCell, isSel && { backgroundColor: theme.primary, borderRadius: 10 }]} onPress={() => selectFormMonth(idx)}>
                           <Text style={[s.monthCellText, { color: theme.text }, isSel && { color: '#fff' }]}>{name.replace('Tháng ', 'T')}</Text>
                         </TouchableOpacity>
                       );
@@ -333,7 +452,7 @@ export default function BudgetScreen() {
 
               {/* Submit */}
               <TouchableOpacity style={[s.submitBtn, { backgroundColor: theme.primary }, submitting && { opacity: 0.5 }]} onPress={handleSubmit} disabled={submitting}>
-                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>Tạo ngân sách</Text>}
+                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>{editBudgetTarget ? 'Cập nhật' : 'Tạo ngân sách'}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -373,8 +492,10 @@ export default function BudgetScreen() {
         guideItems={[
           { iconName: 'wallet-outline', title: 'Tổng quan ngân sách', desc: 'Đầu trang hiển thị tổng ngân sách, tổng đã chi và số tiền còn lại kèm thanh tiến độ tổng.' },
           { iconName: 'add-circle-outline', title: 'Tạo ngân sách', desc: 'Dùng nút (+) để đặt giới hạn chi tiêu cho từng danh mục trong tháng. Bạn có thể chọn tháng áp dụng.' },
+          { iconName: 'create-outline', title: 'Chỉnh sửa ngân sách', desc: 'Nhấn biểu tượng bút để sửa số tiền, tháng hoặc danh mục của ngân sách hiện tại.' },
           { iconName: 'color-palette-outline', title: 'Cảnh báo bằng màu sắc', desc: 'Thanh tiến độ Xanh (an toàn), Vàng (sắp hết), Đỏ (vượt ngân sách).' },
-          { iconName: 'calendar-outline', title: 'Điều hướng tháng', desc: 'Dùng mũi tên trái/phải để xem lại ngân sách các tháng trước hoặc lập kế hoạch cho tháng tới.' },
+          { iconName: 'calendar-outline', title: 'Chọn tháng trực quan', desc: 'Nhấn vào tên tháng ở header để mở popup chọn tháng nhanh.' },
+          { iconName: 'warning-outline', title: 'Cảnh báo vượt ngân sách', desc: 'Khi lưu ngân sách mới hoặc chỉnh sửa, nếu đã chi vượt mức sẽ hiện thông báo cảnh báo.' },
           { iconName: 'pricetag-outline', title: 'Thêm danh mục', desc: 'Trong form tạo ngân sách, bạn có thể tạo danh mục chi tiêu mới nếu cần.' },
           { iconName: 'trash-outline', title: 'Xóa', desc: 'Dùng biểu tượng thùng rác để xóa ngân sách hoặc nhấn giữ danh mục để xóa (trừ danh mục mặc định).' }
         ]}
@@ -390,4 +511,3 @@ export default function BudgetScreen() {
     </View>
   );
 }
-

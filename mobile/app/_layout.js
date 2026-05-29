@@ -3,7 +3,6 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { ThemeProvider } from '../src/context/ThemeContext';
 import { AuthProvider, AuthContext } from '../src/context/AuthContext';
 import { NotificationProvider } from '../src/context/NotificationContext';
-import NotificationBanner from '../src/components/NotificationBanner';
 import { View, ActivityIndicator } from 'react-native';
 import { useContext } from 'react';
 import { api } from '../src/api';
@@ -39,7 +38,6 @@ function RootLayoutNav() {
 
   return (
     <>
-      <NotificationBanner />
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
