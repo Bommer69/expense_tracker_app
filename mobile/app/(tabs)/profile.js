@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { profileStyles as styles } from '../../src/styles/profileStyles';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -111,7 +112,7 @@ export default function ProfileScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.4, // Giảm quality để tránh payload quá lớn
+        quality: 0.7,
       });
 
       if (result.canceled) return;
@@ -121,25 +122,21 @@ export default function ProfileScreen() {
 
       setSubmitting(true);
 
-      // Đọc ảnh thành base64
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+      // Resize ảnh xuống 400x400 trước (avatar không cần ảnh gốc full HD)
+      const resized = await manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 400, height: 400 } }],
+        { format: SaveFormat.JPEG, compress: 0.7 }
+      );
+
+      // Đọc ảnh đã resize thành base64 — file chỉ còn ~50-100KB
+      const base64 = await FileSystem.readAsStringAsync(resized.uri, {
         encoding: 'base64',
       });
 
-      // Kiểm tra kích thước trước khi gửi (tối đa 4MB base64 ≈ 3MB ảnh thật)
-      if (base64.length > 4 * 1024 * 1024) {
-        Alert.alert('Ảnh quá lớn', 'Vui lòng chọn ảnh nhỏ hơn hoặc giảm chất lượng.');
-        setSubmitting(false);
-        return;
-      }
-
-      // Xác định MIME type từ uri
-      const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
-      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
-
       // Gửi lên server dưới dạng data URL
       await updateUser({
-        avatar: `data:${mimeType};base64,${base64}`,
+        avatar: `data:image/jpeg;base64,${base64}`,
       });
 
       Alert.alert('✅', 'Cập nhật ảnh đại diện thành công!');

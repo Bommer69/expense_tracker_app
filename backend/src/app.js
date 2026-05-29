@@ -27,8 +27,8 @@ app.use(cors(allowedOrigin ? {
   credentials: true,
 } : {}));
 // Tăng limit để nhận ảnh base64 (mặc định 100KB là quá nhỏ)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Rate limiting cho auth routes (chống brute force)
 const authLimiter = rateLimit({
@@ -54,6 +54,18 @@ app.use('/api/notifications', notificationRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// Global error handler — bắt lỗi PayloadTooLarge và trả JSON
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large') {
+    console.error('[PAYLOAD] Request too large:', err.expected, err.length);
+    return res.status(413).json({
+      error: 'Dữ liệu gửi lên quá lớn. Vui lòng chọn ảnh nhỏ hơn hoặc giảm chất lượng.',
+    });
+  }
+  console.error('[ERROR] Unhandled:', err.message);
+  res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
 });
 
 module.exports = app;

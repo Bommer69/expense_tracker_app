@@ -179,9 +179,9 @@ async function updateProfile(req, res) {
     if (req.body.avatar && typeof req.body.avatar === 'string') {
       // Validate base64 data URL
       if (req.body.avatar.startsWith('data:image/') && req.body.avatar.includes(';base64,')) {
-        // Giới hạn kích thước ~5MB (base64)
-        if (req.body.avatar.length > 5 * 1024 * 1024) {
-          return res.status(400).json({ error: 'Ảnh quá lớn. Tối đa 5MB.' });
+        // Giới hạn kích thước ~3MB (base64) — ảnh đã resize 400x400 nên chỉ ~100KB
+        if (req.body.avatar.length > 3 * 1024 * 1024) {
+          return res.status(400).json({ error: 'Ảnh quá lớn. Tối đa 3MB.' });
         }
         updateFields.avatar = req.body.avatar;
         console.log('[AUTH] updateProfile - avatar updated (base64, length:', req.body.avatar.length, ')');
