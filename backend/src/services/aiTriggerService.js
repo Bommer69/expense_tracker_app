@@ -11,6 +11,7 @@ const Account = require('../models/Account');
 const Budget = require('../models/Budget');
 const Category = require('../models/Category');
 const Notification = require('../models/Notification');
+const { generateFinancialInsight } = require('./aiClassifier');
 
 // ======================== CẤU HÌNH ========================
 
@@ -300,6 +301,12 @@ async function evaluateTransaction(transaction) {
       await evaluateBudgetForCategory(userId, transaction.categoryId?._id, transaction);
     }
 
+    // ===== 4. AI phân tích thông minh (gọi Gemini để đánh giá) =====
+    // Chỉ chạy khi có giao dịch đáng chú ý và không quá thường xuyên
+    if (!await isOnCooldown(userId, 'ai_insight')) {
+      await evaluateWithAI(transaction, categoryName, balanceAfter, description);
+    }
+
   } catch (err) {
     console.error('[aiTrigger] evaluateTransaction error:', err.message);
   }
@@ -490,6 +497,75 @@ async function generateDailySummary(userId) {
     });
   } catch (err) {
     console.error('[aiTrigger] generateDailySummary error:', err.message);
+  }
+}
+
+/**
+ * AI phân tích thông minh sau mỗi giao dịch.
+ * Gọi Gemini để đánh giá chi tiêu, đưa ra nhận xét cá nhân hoá.
+ */
+async function evaluateWithAI(transaction, categoryName, balanceAfter, description) {
+  try {
+    const userId = transaction.userId;
+    const amount = transaction.amount;
+    const type = transaction.type;
+
+    // Xây context ngắn gọn cho AI
+    const currentMonth = now().toISOString().slice(0, 7);
+    const monthStart = new Date(`${currentMonth}-01`);
+    const monthEnd = new Date(monthStart);
+    monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+    const [monthTxs, budgets] = await Promise.all([
+      Transaction.find({ userId, date: { $gte: monthStart, $lt: monthEnd } }).populate('categoryId'),
+      Budget.find({ userId, month: currentMonth }).populate('categoryId'),
+    ]);
+
+    const totalIncome = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const totalExpense = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    // Budget context
+    let budgetInfo = '';
+    budgets.forEach(b => {
+      const pct = b.amount > 0 ? Math.round(((b.spent || 0) / b.amount) * 100) : 0;
+      budgetInfo += `- ${b.categoryId?.name || 'N/A'}: ${(b.spent || 0).toLocaleString()}/${b.amount.toLocaleString()} VND (${pct}%)\n`;
+    });
+
+    const context = {
+      amount,
+      type,
+      category: categoryName || 'Khác',
+      description: description || '(không mô tả)',
+      balanceAfter,
+      monthIncome: totalIncome,
+      monthExpense: totalExpense,
+      monthBudget: budgetInfo || 'Chưa có ngân sách',
+    };
+
+    const advice = await generateFinancialInsight(context);
+
+    if (!advice || !advice.title || !advice.message) return;
+
+    await Notification.create({
+      userId,
+      type: 'ai_insight',
+      severity: advice.severity || 'info',
+      title: advice.title,
+      message: advice.message,
+      aiGenerated: true,
+      aiAnalysis: advice.fullAnalysis || advice.message,
+      data: {
+        transactionId: transaction._id,
+        categoryId: transaction.categoryId?._id,
+        amount,
+        balanceAfter,
+        extra: { type, categoryName, description },
+      },
+    });
+    console.log(`[aiTrigger] AI insight created for user ${userId}: ${advice.title}`);
+  } catch (err) {
+    // Không crash nếu AI lỗi — chỉ log
+    console.error('[aiTrigger] evaluateWithAI error:', err.message);
   }
 }
 

@@ -4,7 +4,6 @@
 
 const Transaction = require('../models/Transaction');
 const Budget = require('../models/Budget');
-const Notification = require('../models/Notification');
 const { getUserId } = require('../utils/auth');
 const { chatWithAI, getSpendingAdvice, clearUserMemory } = require('../services/aiClassifier');
 
@@ -113,33 +112,7 @@ async function chat(req, res) {
       }
     }
 
-    // Tạo Notification để hiển thị tin nhắn AI trong notification list + push
-    if (!isError) {
-      try {
-        // Rút gọn tin nhắn AI nếu quá dài (lấy 200 ký tự đầu)
-        const shortMsg = answer.length > 200
-          ? answer.substring(0, 200) + '...'
-          : answer;
-
-        await Notification.create({
-          userId,
-          type: 'ai_insight',
-          severity: 'info',
-          title: '🤖 Trợ lý AI',
-          message: shortMsg,
-          aiGenerated: true,
-          aiAnalysis: answer,  // Lưu toàn bộ tin nhắn gốc
-          data: {
-            extra: {
-              userMessage: message,
-              fullResponse: answer,
-            },
-          },
-        });
-      } catch (notifErr) {
-        console.error('[AI Chat] Failed to create notification:', notifErr.message);
-      }
-    }
+    // Không tạo notification khi chat — chỉ tạo từ AI trigger tự động
 
     res.json({ answer });
   } catch (err) {

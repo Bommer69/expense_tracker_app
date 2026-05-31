@@ -87,12 +87,6 @@ export default function TransactionItem({ item, onEdit, onDelete }) {
           <Text style={[s.txAmt, { color: isIncome ? theme.success : theme.error }]}>
             {isIncome ? '+' : '-'}{formatCurrency(item.amount)}
           </Text>
-          <TouchableOpacity
-            style={s.deleteIconBtn}
-            onPress={() => onDelete(item)}
-          >
-            <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
-          </TouchableOpacity>
         </View>
       </View>
     </Swipeable>

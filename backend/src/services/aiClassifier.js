@@ -170,4 +170,61 @@ function fallbackClassify(description) {
   return { category: 'Khác', confidence: 0.5 };
 }
 
-module.exports = { chatWithAI, classifyTransaction, getSpendingAdvice, clearUserMemory };
+/**
+ * AI tự động đánh giá giao dịch và trả về insight có cấu trúc.
+ * Dùng cho trigger service tạo notification thông minh.
+ */
+async function generateFinancialInsight(context) {
+  const gemini = getModel();
+  if (!gemini) return null;
+
+  const prompt = `Bạn là chuyên gia tài chính cá nhân. Hãy phân tích giao dịch vừa xảy ra dựa trên dữ liệu sau và đưa ra nhận xét ngắn gọn bằng tiếng Việt.
+
+---
+DỮ LIỆU:
+Số tiền: ${context.amount.toLocaleString()} VND
+Loại: ${context.type === 'expense' ? '💸 Chi tiêu' : '💰 Thu nhập'}
+Danh mục: ${context.category}
+Mô tả: ${context.description}
+Thu nhập tháng này: ${(context.monthIncome || 0).toLocaleString()} VND
+Chi tiêu tháng này: ${(context.monthExpense || 0).toLocaleString()} VND
+Số dư hiện tại: ${(context.balanceAfter || 0).toLocaleString()} VND
+Ngân sách tháng này:\n${context.monthBudget || 'Chưa có ngân sách'}
+---
+
+Yêu cầu:
+- Nếu là CHI TIÊU: nhận xét mức độ hợp lý (hợp lý / hơi cao / quá cao), so với tổng chi tháng và đưa ra lời khuyên.
+- Nếu là THU NHẬP: nhận xét tích cực, gợi ý tiết kiệm hoặc đầu tư.
+- Đánh giá tổng thể tài chính: Ổn định / Cần thận trọng / Đang chi quá tay.
+
+Trả lời CHỈ JSON, không có text khác:
+{
+  "title": "tiêu đề ngắn gọn có emoji, tối đa 40 ký tự",
+  "message": "nội dung chi tiết 1-2 câu, tối đa 150 ký tự",
+  "severity": "info",
+  "fullAnalysis": "phân tích đầy đủ hơn, tối đa 5 dòng"
+}
+
+Ghi chú severity: "info" nếu bình thường, "warning" nếu cần chú ý, "critical" nếu rất bất thường.`;
+
+  try {
+    const result = await gemini.generateContent(prompt);
+    const content = result.response.text();
+    const match = content.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      return {
+        title: parsed.title || '🤖 AI nhận xét',
+        message: parsed.message || 'Không có nhận xét.',
+        severity: ['info', 'warning', 'critical'].includes(parsed.severity) ? parsed.severity : 'info',
+        fullAnalysis: parsed.fullAnalysis || parsed.message || '',
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error('[AI Classifier] generateFinancialInsight error:', err.message);
+    return null;
+  }
+}
+
+module.exports = { chatWithAI, classifyTransaction, getSpendingAdvice, clearUserMemory, generateFinancialInsight };

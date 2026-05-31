@@ -16,8 +16,6 @@ pnpm-debug.log*
 
 
 # Backend uploads (không dùng nữa — avatar lưu trong DB)
-backend/uploads/
-
 # Expo / React Native
 .expo/
 dist/
@@ -64,4 +62,3 @@ coverage/
 .cache/
 tmp/
 temp/
-.vercel
