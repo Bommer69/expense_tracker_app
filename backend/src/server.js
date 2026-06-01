@@ -9,6 +9,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/expens
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const { generateDailySummary, evaluateAnomalies } = require('./services/aiTriggerService');
+const { monthlyRolloverCheck } = require('./services/monthlyRolloverService');
 
 mongoose.connect(MONGODB_URI)
   .then(async () => {
@@ -38,6 +39,14 @@ mongoose.connect(MONGODB_URI)
       try {
         const now = new Date();
         const hour = now.getHours();
+        const day = now.getDate();
+
+        // Monthly rollover: chạy lúc 00:00-01:00 mỗi ngày (đầu tháng)
+        if (hour === 0 && day === 1) {
+          console.log('[Scheduler] Running monthly rollover...');
+          await monthlyRolloverCheck();
+          console.log('[Scheduler] Monthly rollover completed');
+        }
 
         // Daily summary: chạy lúc 21:00-22:00 mỗi ngày
         if (hour === 21) {

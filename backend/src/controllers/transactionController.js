@@ -9,11 +9,14 @@ const { getUserId } = require('../utils/auth');
 const { classifyTransaction } = require('../services/aiClassifier');
 const { generateRecurringTransactions } = require('../services/recurringGenerator');
 const { evaluateTransaction } = require('../services/aiTriggerService');
+const { rolloverUser, monthlyRolloverCheck } = require('../services/monthlyRolloverService');
 
 async function getAll(req, res) {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    // Tự động kiểm tra rollover tháng mới cho user này
+    await rolloverUser(userId);
     await generateRecurringTransactions(userId);
     
     const { startDate, endDate, categoryId, type, limit = 50 } = req.query;
@@ -42,6 +45,7 @@ async function create(req, res) {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    await rolloverUser(userId);
     await generateRecurringTransactions(userId);
     
     const { amount, description, date, categoryId, type, accountId, tags } = req.body;

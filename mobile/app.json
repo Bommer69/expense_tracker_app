@@ -61,7 +61,8 @@
       "router": {},
       "eas": {
         "projectId": "25dc9420-080f-493c-9f11-dad9e3fcac2f"
-      }
+      },
+      "apiUrl": "https://expense-tracker-app-ee14.onrender.com/api"
     }
   }
 }
