@@ -227,4 +227,66 @@ Ghi chú severity: "info" nếu bình thường, "warning" nếu cần chú ý, 
   }
 }
 
-module.exports = { chatWithAI, classifyTransaction, getSpendingAdvice, clearUserMemory, generateFinancialInsight };
+/**
+ * Tạo báo cáo tổng kết tháng bằng AI
+ */
+async function generateMonthlySummaryText(monthData) {
+  const gemini = getModel();
+  if (!gemini) return null;
+
+  const prompt = `Bạn là chuyên gia tài chính cá nhân. Hãy tổng kết tình hình tài chính tháng dựa trên dữ liệu sau và đưa ra nhận xét bằng tiếng Việt, giọng văn thân thiện, dễ hiểu.
+
+---
+DỮ LIỆU THÁNG ${monthData.month}:
+Tổng thu nhập: ${monthData.totalIncome.toLocaleString()} VND
+Tổng chi tiêu: ${monthData.totalExpense.toLocaleString()} VND
+Tiết kiệm: ${(monthData.totalIncome - monthData.totalExpense).toLocaleString()} VND
+Số giao dịch: ${monthData.transactionCount} giao dịch
+
+CHI TIẾT CHI TIÊU THEO DANH MỤC:
+${monthData.categoryDetails}
+
+CHI TIẾT NGÂN SÁCH:
+${monthData.budgetDetails || 'Chưa có ngân sách'}
+
+SO SÁNH VỚI THÁNG TRƯỚC:
+${monthData.compareText || 'Chưa có dữ liệu tháng trước'}
+---
+
+Yêu cầu:
+1. Tổng kết ngắn gọn tình hình thu chi trong tháng
+2. Nhận xét về các danh mục chi tiêu nổi bật (cao nhất, bất thường)
+3. Đánh giá tổng thể: Tuyệt vời / Ổn định / Cần cẩn thận / Đang chi quá tay
+4. Gợi ý 1-2 lời khuyên cho tháng tới
+
+Trả lời CHỈ JSON, không có text khác:
+{
+  "title": "📊 Tổng kết Tháng <tên tháng> - <đánh giá>",
+  "message": "tóm tắt 1-2 câu ngắn gọn, tối đa 180 ký tự",
+  "severity": "info",
+  "fullAnalysis": "phân tích chi tiết tối đa 8 dòng"
+}
+
+Ghi chú severity: "info" nếu tài chính ổn định/tốt, "warning" nếu chi tiêu hơi cao, "critical" nếu chi tiêu vượt quá nhiều so với thu nhập.`;
+
+  try {
+    const result = await gemini.generateContent(prompt);
+    const content = result.response.text();
+    const match = content.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      return {
+        title: parsed.title || '📊 Tổng kết tháng',
+        message: parsed.message || 'Chưa có dữ liệu.',
+        severity: ['info', 'warning', 'critical'].includes(parsed.severity) ? parsed.severity : 'info',
+        fullAnalysis: parsed.fullAnalysis || '',
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error('[AI Classifier] generateMonthlySummaryText error:', err.message);
+    return null;
+  }
+}
+
+module.exports = { chatWithAI, classifyTransaction, getSpendingAdvice, clearUserMemory, generateFinancialInsight, generateMonthlySummaryText };

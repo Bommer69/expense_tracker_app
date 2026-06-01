@@ -11,6 +11,7 @@ const notificationSchema = new mongoose.Schema({
       'budget_alert',       // Cảnh báo ngân sách
       'anomaly',            // Chi tiêu bất thường
       'daily_summary',      // Tổng kết cuối ngày
+      'monthly_summary',    // Tổng kết cuối tháng (AI)
       'ai_insight',         // Insight từ AI
     ],
     required: true,

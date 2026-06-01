@@ -11,7 +11,7 @@ const Account = require('../models/Account');
 const Budget = require('../models/Budget');
 const Category = require('../models/Category');
 const Notification = require('../models/Notification');
-const { generateFinancialInsight } = require('./aiClassifier');
+const { generateFinancialInsight, generateMonthlySummaryText } = require('./aiClassifier');
 
 // ======================== CẤU HÌNH ========================
 
@@ -159,6 +159,11 @@ function getTemplateMessage(type, context) {
     daily_summary: {
       title: '📊 Tổng kết chi tiêu hôm nay',
       message: `Hôm nay: Thu ${vnd(context.totalIncome)} - Chi ${vnd(context.totalExpense)}${context.balanceChange ? ` | Biến động: ${vnd(context.balanceChange)}` : ''}.`,
+      severity: 'info',
+    },
+    monthly_summary: {
+      title: '📊 Tổng kết tháng',
+      message: context.aiMessage || `Tháng này: Thu ${vnd(context.totalIncome)} - Chi ${vnd(context.totalExpense)}${context.savings ? ` | Tiết kiệm: ${vnd(context.savings)}` : ''}.`,
       severity: 'info',
     },
   };
@@ -501,6 +506,140 @@ async function generateDailySummary(userId) {
 }
 
 /**
+ * Tổng kết cuối tháng — gọi từ cron job (cuối tháng) hoặc manual.
+ * Thu thập dữ liệu cả tháng, gọi AI để phân tích và gửi thông báo.
+ */
+async function generateMonthlySummary(userId) {
+  try {
+    const now = new Date();
+    const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
+
+    // Tính tháng trước (tháng cần tổng kết)
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonth = prevDate.toISOString().slice(0, 7);
+    const monthStart = new Date(`${prevMonth}-01`);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Lấy giao dịch tháng trước
+    const txs = await Transaction.find({
+      userId,
+      date: { $gte: monthStart, $lt: monthEnd },
+    }).populate('categoryId');
+
+    if (txs.length === 0) return; // Không có giao dịch
+
+    const totalIncome = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const totalExpense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    // Nhóm chi tiêu theo danh mục
+    const expenseByCat = {};
+    txs.filter(t => t.type === 'expense').forEach(t => {
+      const name = t.categoryId?.name || 'Khác';
+      expenseByCat[name] = (expenseByCat[name] || 0) + t.amount;
+    });
+
+    // Sắp xếp danh mục theo số tiền giảm dần
+    const sortedCats = Object.entries(expenseByCat)
+      .sort(([, a], [, b]) => b - a)
+      .map(([name, amount]) => `- ${name}: ${amount.toLocaleString()} VND`)
+      .join('\n');
+
+    // Lấy ngân sách tháng
+    const budgets = await Budget.find({ userId, month: prevMonth }).populate('categoryId');
+    let budgetDetails = '';
+    budgets.forEach(b => {
+      const pct = b.amount > 0 ? Math.round(((b.spent || 0) / b.amount) * 100) : 0;
+      budgetDetails += `- ${b.categoryId?.name || 'N/A'}: ${(b.spent || 0).toLocaleString()}/${b.amount.toLocaleString()} VND (${pct}%)\n`;
+    });
+
+    // So sánh với tháng trước đó
+    const prev2Date = new Date(prevDate);
+    prev2Date.setMonth(prev2Date.getMonth() - 1);
+    const prev2Start = new Date(prev2Date.getFullYear(), prev2Date.getMonth(), 1);
+
+    const prevTxs = await Transaction.find({
+      userId,
+      date: { $gte: prev2Start, $lt: monthStart },
+    });
+
+    const prevIncome = prevTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const prevExpense = prevTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    let compareText = '';
+    if (prevTxs.length > 0) {
+      const incomeChange = prevIncome > 0 ? Math.round(((totalIncome - prevIncome) / prevIncome) * 100) : 0;
+      const expenseChange = prevExpense > 0 ? Math.round(((totalExpense - prevExpense) / prevExpense) * 100) : 0;
+      compareText = `Thu nhập: ${totalIncome.toLocaleString()} VND (${incomeChange >= 0 ? '+' : ''}${incomeChange}% so với tháng trước)\nChi tiêu: ${totalExpense.toLocaleString()} VND (${expenseChange >= 0 ? '+' : ''}${expenseChange}% so với tháng trước)`;
+    }
+
+    // Tên tháng
+    const monthNames = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+    const monthName = `${monthNames[prevDate.getMonth()]} ${prevDate.getFullYear()}`;
+
+    // Gọi AI để tạo nội dung tổng kết
+    const aiResult = await generateMonthlySummaryText({
+      month: monthName,
+      totalIncome,
+      totalExpense,
+      transactionCount: txs.length,
+      categoryDetails: sortedCats || 'Không có chi tiêu',
+      budgetDetails: budgetDetails || 'Chưa có ngân sách',
+      compareText: compareText || 'Chưa có dữ liệu tháng trước',
+    });
+
+    if (aiResult) {
+      await Notification.create({
+        userId,
+        type: 'monthly_summary',
+        severity: aiResult.severity || 'info',
+        title: aiResult.title || `📊 Tổng kết ${monthName}`,
+        message: aiResult.message || 'Xem chi tiết trong ứng dụng.',
+        aiGenerated: true,
+        aiAnalysis: aiResult.fullAnalysis || '',
+        data: {
+          amount: totalIncome - totalExpense,
+          extra: {
+            month: prevMonth,
+            monthName,
+            totalIncome,
+            totalExpense,
+            transactionCount: txs.length,
+            fullAnalysis: aiResult.fullAnalysis,
+          },
+        },
+      });
+      console.log(`[aiTrigger] Monthly summary created for user ${userId}: ${monthName}`);
+    } else {
+      // Fallback nếu AI lỗi — dùng template
+      const savings = totalIncome - totalExpense;
+      const context = {
+        totalIncome,
+        totalExpense,
+        savings,
+        aiMessage: `📊 ${monthName}: Thu ${totalIncome.toLocaleString('vi-VN')}₫ - Chi ${totalExpense.toLocaleString('vi-VN')}₫${savings >= 0 ? ` | Tiết kiệm: ${savings.toLocaleString('vi-VN')}₫` : ` | Thâm hụt: ${Math.abs(savings).toLocaleString('vi-VN')}₫`}.`,
+      };
+      const template = getTemplateMessage('monthly_summary', context);
+
+      await Notification.create({
+        userId,
+        type: 'monthly_summary',
+        severity: 'info',
+        title: `📊 Tổng kết ${monthName}`,
+        message: template.message,
+        aiGenerated: false,
+        data: {
+          amount: savings,
+          extra: { month: prevMonth, monthName, totalIncome, totalExpense },
+        },
+      });
+      console.log(`[aiTrigger] Monthly summary (fallback) created for user ${userId}: ${monthName}`);
+    }
+  } catch (err) {
+    console.error('[aiTrigger] generateMonthlySummary error:', err.message);
+  }
+}
+
+/**
  * AI phân tích thông minh sau mỗi giao dịch.
  * Gọi Gemini để đánh giá chi tiêu, đưa ra nhận xét cá nhân hoá.
  */
@@ -573,6 +712,7 @@ module.exports = {
   evaluateTransaction,
   evaluateAnomalies,
   generateDailySummary,
+  generateMonthlySummary,
   getCurrentBalance,
   CONFIG,
 };

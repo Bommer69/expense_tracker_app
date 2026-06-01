@@ -33,6 +33,7 @@ const TYPE_ICONS = {
   budget_alert: 'alert-circle',
   anomaly: 'warning',
   daily_summary: 'calendar',
+  monthly_summary: 'stats-chart',
   ai_insight: 'bulb',
 };
 
