@@ -29,6 +29,7 @@ export default function AIChatScreen() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [guideVisible, setGuideVisible] = useState(false);
   const flatListRef = useRef(null);
+  const sendingRef = useRef(false);
   const [clearing, setClearing] = useState(false);
 
   // Load lịch sử hội thoại từ server khi mở màn hình
@@ -73,7 +74,9 @@ export default function AIChatScreen() {
 
   const sendMessage = async (text) => {
     const messageText = text || inputText.trim();
-    if (!messageText || loading) return;
+    if (!messageText || loading || sendingRef.current) return;
+
+    sendingRef.current = true;
 
     const userMsg = {
       id: Date.now().toString(),
@@ -91,9 +94,8 @@ export default function AIChatScreen() {
       const aiMsg = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        text: response.data.answer,
+        text: response.data?.answer || '🤖 Không nhận được phản hồi từ AI.',
         time: new Date(),
-        context: response.data.context,
       };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err) {
@@ -107,12 +109,15 @@ export default function AIChatScreen() {
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setLoading(false);
+      sendingRef.current = false;
     }
   };
 
   useEffect(() => {
     if (flatListRef.current && messages.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: messages.length > 2 });
+      });
     }
   }, [messages]);
 

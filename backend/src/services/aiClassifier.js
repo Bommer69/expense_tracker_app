@@ -64,13 +64,20 @@ Hãy dùng công cụ để lấy số liệu chính xác từ database trước
   const history = await getHistory(userId);
   const chat = chatModel.startChat({ history: [...history] });
 
-  let result = await chat.sendMessage(message);
+  // Set timeout để tránh request treo quá lâu
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('TIMEOUT: Gemini không phản hồi trong 30 giây')), 30000)
+  );
+
+  let result = await Promise.race([chat.sendMessage(message), timeoutPromise]);
 
   // Function-calling loop — AI có thể gọi nhiều tool liên tiếp
   let iterations = 0;
   while (result.response.functionCalls()?.length > 0 && iterations < 5) {
     iterations++;
     const calls = result.response.functionCalls();
+    if (!calls || calls.length === 0) break;
+    
     const functionResponses = [];
 
     for (const call of calls) {
@@ -86,16 +93,45 @@ Hãy dùng công cụ để lấy số liệu chính xác từ database trước
       });
     }
 
-    result = await chat.sendMessage(functionResponses);
+    const timeoutPromise2 = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT: Gemini không phản hồi trong 30 giây')), 30000)
+    );
+    result = await Promise.race([chat.sendMessage(functionResponses), timeoutPromise2]);
   }
 
-  const replyText = result.response.text();
+  // Lấy text response — nếu rỗng thì thử lấy từ candidate đầu tiên
+  let replyText = '';
+  try {
+    replyText = result.response.text();
+  } catch (e) {
+    // response.text() có thể throw nếu response bị block hoặc rỗng
+    try {
+      const candidates = result.response.candidates;
+      if (candidates && candidates.length > 0) {
+        const parts = candidates[0].content?.parts || [];
+        replyText = parts.map(p => p.text || '').filter(Boolean).join(' ');
+      }
+    } catch (e2) {
+      replyText = '';
+    }
+  }
 
-  // Lưu vào DB và cập nhật cache
-  await ChatMessage.insertMany([
-    { userId, role: 'user', text: message },
-    { userId, role: 'model', text: replyText },
-  ]);
+  if (!replyText || replyText.trim() === '') {
+    replyText = '🤖 AI không thể tạo phản hồi cho câu hỏi này. Vui lòng thử lại với cách diễn đạt khác.';
+  }
+
+  // Lưu vào DB và cập nhật cache (chỉ lưu nếu không phải timeout)
+  try {
+    await ChatMessage.insertMany([
+      { userId, role: 'user', text: message },
+      { userId, role: 'model', text: replyText },
+    ]);
+  } catch (dbErr) {
+    console.error('[AI Chat] Failed to save chat history:', dbErr.message);
+    // Không throw — vẫn trả về response cho user
+  }
+
+  // Luôn cập nhật cache (kể cả khi lưu DB thất bại)
   history.push({ role: 'user', parts: [{ text: message }] });
   history.push({ role: 'model', parts: [{ text: replyText }] });
   if (history.length > MAX_HISTORY) {

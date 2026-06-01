@@ -84,12 +84,10 @@ async function chat(req, res) {
     }
     
     let answer;
-    let isError = false;
     try {
-      answer = await chatWithAI(message, userId);
+      answer = await chatWithAI(message.trim(), userId);
     } catch (err) {
       console.error('AI chat error:', err.message);
-      isError = true;
       const errorText = String(err.message || '');
 
       if (errorText.includes('GEMINI_API_KEY')) {
@@ -97,26 +95,54 @@ async function chat(req, res) {
       } else if (
         errorText.includes('API_KEY_INVALID') ||
         errorText.includes('API Key not found') ||
-        errorText.includes('reported as leaked')
+        errorText.includes('reported as leaked') ||
+        errorText.includes('API_KEY') ||
+        errorText.includes('not valid')
       ) {
         answer = '⚠️ API key Gemini không hợp lệ hoặc đã bị thu hồi.\n\nVui lòng tạo key mới tại https://aistudio.google.com/apikey và cập nhật GEMINI_API_KEY trong backend/.env.';
       } else if (
         errorText.includes('RESOURCE_EXHAUSTED') ||
         errorText.includes('Quota exceeded') ||
         errorText.includes('rate-limit') ||
-        errorText.includes('free_tier')
+        errorText.includes('free_tier') ||
+        errorText.includes('429') ||
+        errorText.includes('Too Many Requests')
       ) {
-        answer = '⚠️ API key đã hết quota miễn phí.\n\nVui lòng lấy key mới tại https://aistudio.google.com/apikey và cập nhật GEMINI_API_KEY trong backend/.env.';
+        answer = '⚠️ API key đã hết quota miễn phí hoặc bị giới hạn tần suất.\n\nVui lòng chờ 1 phút rồi thử lại, hoặc lấy key mới tại https://aistudio.google.com/apikey.';
+      } else if (
+        errorText.includes('SAFETY') ||
+        errorText.includes('blocked') ||
+        errorText.includes('safety')
+      ) {
+        answer = '⚠️ AI không thể trả lời do nội dung vi phạm chính sách an toàn. Vui lòng diễn đạt lại câu hỏi.';
+      } else if (
+        errorText.includes('INVALID_ARGUMENT') ||
+        errorText.includes('invalid') ||
+        errorText.includes('Bad Request')
+      ) {
+        answer = '⚠️ Dữ liệu gửi đến AI không hợp lệ. Vui lòng thử lại với câu hỏi khác.';
+      } else if (
+        errorText.includes('timeout') ||
+        errorText.includes('TIMEOUT') ||
+        errorText.includes('Timed out') ||
+        errorText.includes('Deadline')
+      ) {
+        answer = '⏱️ AI phản hồi quá lâu. Vui lòng thử lại với câu hỏi ngắn hơn.';
       } else {
-        answer = '🤖 Xin lỗi, AI tạm thời không khả dụng. Vui lòng thử lại sau.';
+        // Kiểm tra nếu là lỗi Gemini cụ thể (chuỗi lỗi từ SDK)
+        const geminiSpecific = errorText.match(/\[400\]|\[403\]|\[429\]|\[500\]|\[503\]/);
+        if (geminiSpecific) {
+          answer = '🤖 Dịch vụ AI đang gặp sự cố tạm thời. Vui lòng thử lại sau vài giây.';
+        } else {
+          answer = '🤖 Xin lỗi, AI tạm thời không khả dụng. Vui lòng thử lại sau.';
+        }
       }
     }
 
-    // Không tạo notification khi chat — chỉ tạo từ AI trigger tự động
-
     res.json({ answer });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[AI Chat] Unexpected error:', err.message);
+    res.status(500).json({ error: 'Đã xảy ra lỗi máy chủ. Vui lòng thử lại.' });
   }
 }
 
