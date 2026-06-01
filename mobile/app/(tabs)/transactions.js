@@ -4,7 +4,7 @@ import { useTheme } from '../../src/hooks/useTheme';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useCategories } from '../../src/hooks/useCategories';
 import { useRecurringTransactions } from '../../src/hooks/useRecurringTransactions';
-import { formatCurrency, formatNumberInput, parseFormattedNumber } from '../../src/utils/formatters';
+import { formatCurrency, formatNumberInput, parseFormattedNumber, getCurrentMonth } from '../../src/utils/formatters';
 import { useState, useMemo, useCallback } from 'react';
 import { UserGuideModal } from '../../src/components/UserGuideModal';
 import { ConfirmModal } from '../../src/components/ConfirmModal';
@@ -57,6 +57,7 @@ export default function TransactionsScreen() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  const [viewMonth, setViewMonth] = useState(getCurrentMonth());
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [formData, setFormData] = useState({ amount: '', description: '', type: 'expense' });
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -72,16 +73,43 @@ export default function TransactionsScreen() {
     categoryId: '',
   });
 
-  // Refresh data when screen focuses
+  // Month navigation
+  const navigateMonth = (dir) => {
+    const [y, m] = viewMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + dir, 1);
+    setViewMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const formatMonth = (m) => {
+    const [y, mo] = m.split('-');
+    const months = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+    return `${months[parseInt(mo) - 1]} ${y}`;
+  };
+
+  const getMonthRange = (monthStr) => {
+    const startDate = `${monthStr}-01`;
+    const endDateObj = new Date(new Date(startDate).setMonth(new Date(startDate).getMonth() + 1));
+    const endDate = endDateObj.toISOString().slice(0, 10);
+    return { startDate, endDate };
+  };
+
+  // Refresh data when screen focuses or month changes
   useFocusEffect(
     useCallback(() => {
       fetchCategories();
-      fetchTransactions();
       fetchRecurrings();
-    }, [])
+      const { startDate, endDate } = getMonthRange(viewMonth);
+      fetchTransactions({ startDate, endDate, limit: 200 });
+    }, [viewMonth])
   );
 
-  const onRefresh = async () => { setRefreshing(true); await fetchTransactions(); await fetchCategories(); setRefreshing(false); };
+  const onRefresh = async () => { 
+    setRefreshing(true); 
+    const { startDate, endDate } = getMonthRange(viewMonth);
+    await fetchTransactions({ startDate, endDate, limit: 200 }); 
+    await fetchCategories(); 
+    setRefreshing(false); 
+  };
 
   const filtered = transactions.filter(tx => {
     const matchType = filterType === 'all' || tx.type === filterType;
@@ -302,6 +330,16 @@ export default function TransactionsScreen() {
               <Ionicons name="book-outline" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
+        </View>
+        {/* Month Navigation */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8, gap: 16 }}>
+          <TouchableOpacity onPress={() => navigateMonth(-1)}>
+            <Ionicons name="chevron-back" size={20} color={theme.primary} />
+          </TouchableOpacity>
+          <Text style={[{ color: theme.text, fontSize: 16, fontWeight: '600' }]}>{formatMonth(viewMonth)}</Text>
+          <TouchableOpacity onPress={() => navigateMonth(1)}>
+            <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+          </TouchableOpacity>
         </View>
         <View style={s.summaryRow}>
           <View style={s.summaryItem}>
