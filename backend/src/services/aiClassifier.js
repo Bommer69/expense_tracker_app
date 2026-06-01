@@ -28,15 +28,46 @@ function getModel() {
 const userHistories = new Map();
 const MAX_HISTORY = 40; // 20 exchanges
 
+/**
+ * Validate & sanitize history array để đảm bảo:
+ * - Phần tử đầu tiên luôn là role 'user'
+ * - Không có tin nhắn 'model' liên tiếp (luân phiên user→model→user→model)
+ * Nếu history trống hoặc chỉ có 'model', trả về mảng rỗng.
+ */
+function sanitizeHistory(raw) {
+  // Loại bỏ các 'model' ở đầu
+  let cleaned = [...raw];
+  while (cleaned.length > 0 && cleaned[0].role !== 'user') {
+    cleaned.shift();
+  }
+  
+  // Đảm bảo luân phiên user→model→user→model
+  const result = [];
+  let expectedRole = 'user';
+  for (const msg of cleaned) {
+    if (msg.role === expectedRole) {
+      result.push({ role: msg.role, parts: Array.isArray(msg.parts) ? msg.parts : [{ text: msg.parts?.[0]?.text || '' }] });
+      expectedRole = expectedRole === 'user' ? 'model' : 'user';
+    }
+    // Bỏ qua message sai thứ tự (duplicate role)
+  }
+  
+  // Nếu kết thúc ở 'user', giữ nguyên (Gemini đang đợi 'model')
+  // Nếu kết thúc ở 'model', cũng OK
+  
+  return result;
+}
+
 async function getHistory(userId) {
   const key = String(userId);
   if (!userHistories.has(key)) {
     const msgs = await ChatMessage.find({ userId })
       .sort({ createdAt: 1 })
       .limit(MAX_HISTORY);
-    userHistories.set(key, msgs.map(m => ({ role: m.role, parts: [{ text: m.text }] })));
+    const raw = msgs.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
+    userHistories.set(key, sanitizeHistory(raw));
   }
-  return userHistories.get(key);
+  return userHistories.get(key).map(m => ({ role: m.role, parts: m.parts.map(p => ({ ...p })) }));
 }
 
 async function clearUserMemory(userId) {
@@ -62,7 +93,7 @@ Hãy dùng công cụ để lấy số liệu chính xác từ database trước
   });
 
   const history = await getHistory(userId);
-  const chat = chatModel.startChat({ history: [...history] });
+  const chat = chatModel.startChat({ history });
 
   // Set timeout để tránh request treo quá lâu
   const timeoutPromise = new Promise((_, reject) =>
@@ -120,22 +151,25 @@ Hãy dùng công cụ để lấy số liệu chính xác từ database trước
     replyText = '🤖 AI không thể tạo phản hồi cho câu hỏi này. Vui lòng thử lại với cách diễn đạt khác.';
   }
 
-  // Lưu vào DB và cập nhật cache (chỉ lưu nếu không phải timeout)
+  // Lưu vào DB (và cập nhật cache nếu thành công)
   try {
     await ChatMessage.insertMany([
       { userId, role: 'user', text: message },
       { userId, role: 'model', text: replyText },
     ]);
+    
+    // Cập nhật cache — lưu sanitized vào cache
+    const key = String(userId);
+    const cache = userHistories.get(key) || [];
+    cache.push({ role: 'user', parts: [{ text: message }] });
+    cache.push({ role: 'model', parts: [{ text: replyText }] });
+    if (cache.length > MAX_HISTORY) {
+      cache.splice(0, cache.length - MAX_HISTORY);
+    }
   } catch (dbErr) {
     console.error('[AI Chat] Failed to save chat history:', dbErr.message);
     // Không throw — vẫn trả về response cho user
-  }
-
-  // Luôn cập nhật cache (kể cả khi lưu DB thất bại)
-  history.push({ role: 'user', parts: [{ text: message }] });
-  history.push({ role: 'model', parts: [{ text: replyText }] });
-  if (history.length > MAX_HISTORY) {
-    history.splice(0, history.length - MAX_HISTORY);
+    // Không cập nhật cache để tránh lệch với DB
   }
 
   return replyText;
