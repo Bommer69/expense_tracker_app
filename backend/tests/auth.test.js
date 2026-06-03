@@ -30,17 +30,13 @@ describe('POST /api/auth/register', () => {
     expect(res.body.user).toHaveProperty('id');
   });
 
-  test('TC-AUTH-02: Đăng ký seed 10 danh mục mặc định và 2 tài khoản mặc định', async () => {
+  test('TC-AUTH-02: Đăng ký seed 10 danh mục mặc định', async () => {
     const regRes = await request(app).post('/api/auth/register').send(validPayload);
     const token = regRes.body.token;
 
-    const [catRes, accRes] = await Promise.all([
-      request(app).get('/api/categories').set('Authorization', `Bearer ${token}`),
-      request(app).get('/api/accounts').set('Authorization', `Bearer ${token}`),
-    ]);
+    const catRes = await request(app).get('/api/categories').set('Authorization', `Bearer ${token}`);
 
     expect(catRes.body.length).toBeGreaterThanOrEqual(10);
-    expect(accRes.body.length).toBeGreaterThanOrEqual(2);
   });
 
   test('TC-AUTH-03: Thiếu trường name – 400 lỗi validation', async () => {

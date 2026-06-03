@@ -25,7 +25,6 @@ const notificationSchema = new mongoose.Schema({
   message: { type: String, required: true },
   data: {
     transactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' },
-    accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     amount: Number,
     balanceAfter: Number,

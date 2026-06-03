@@ -35,16 +35,6 @@ async function getCategories(token) {
 }
 
 /**
- * Lấy danh sách accounts của user (mặc định đã seed khi register)
- */
-async function getAccounts(token) {
-  const res = await request(app)
-    .get('/api/accounts')
-    .set('Authorization', `Bearer ${token}`);
-  return res.body;
-}
-
-/**
  * Tạo giao dịch chi tiêu mẫu
  */
 async function createTransaction(token, overrides = {}) {
@@ -69,4 +59,4 @@ async function createTransaction(token, overrides = {}) {
   return res.body;
 }
 
-module.exports = { createUser, getCategories, getAccounts, createTransaction };
+module.exports = { createUser, getCategories, createTransaction };

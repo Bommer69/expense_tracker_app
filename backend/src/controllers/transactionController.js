@@ -4,7 +4,6 @@
 
 const Transaction = require('../models/Transaction');
 const Category = require('../models/Category');
-const Account = require('../models/Account');
 const { getUserId } = require('../utils/auth');
 const { classifyTransaction } = require('../services/aiClassifier');
 const { generateRecurringTransactions } = require('../services/recurringGenerator');
@@ -48,16 +47,7 @@ async function create(req, res) {
     await rolloverUser(userId);
     await generateRecurringTransactions(userId);
     
-    const { amount, description, date, categoryId, type, accountId, tags } = req.body;
-    
-    // Nếu không có accountId, gán vào tài khoản mặc định
-    let finalAccountId = accountId;
-    if (!finalAccountId) {
-      const defaultAccount = await Account.findOne({ userId, isDefault: true });
-      if (defaultAccount) {
-        finalAccountId = defaultAccount._id;
-      }
-    }
+    const { amount, description, date, categoryId, type, tags } = req.body;
     
     let finalCategoryId = categoryId;
     let aiConfidence = null;
@@ -92,7 +82,6 @@ async function create(req, res) {
     
     const transaction = await Transaction.create({
       userId,
-      accountId: finalAccountId,
       categoryId: finalCategoryId,
       type: type || 'expense',
       amount,

@@ -1,6 +1,5 @@
 const RecurringTransaction = require('../models/RecurringTransaction');
 const Transaction = require('../models/Transaction');
-const Account = require('../models/Account');
 
 function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -84,15 +83,6 @@ async function generateRecurringTransactions(userId, upTo = new Date()) {
   const recurrings = await RecurringTransaction.find({ userId, isActive: true });
   let generatedCount = 0;
 
-  // Tìm tài khoản mặc định để fallback nếu recurring chưa có accountId
-  let defaultAccountId = null;
-  if (recurrings.some(r => !r.accountId)) {
-    const defaultAccount = await Account.findOne({ userId, isDefault: true });
-    if (defaultAccount) {
-      defaultAccountId = defaultAccount._id;
-    }
-  }
-
   for (const recurring of recurrings) {
     const schedule = normalizeSchedule(recurring);
     let cursor = recurring.lastGeneratedAt
@@ -106,7 +96,6 @@ async function generateRecurringTransactions(userId, upTo = new Date()) {
       try {
         await Transaction.create({
           userId,
-          accountId: recurring.accountId || defaultAccountId,
           categoryId: recurring.categoryId,
           type: recurring.type,
           amount: recurring.amount,

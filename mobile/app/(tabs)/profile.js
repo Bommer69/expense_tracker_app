@@ -2,7 +2,6 @@ import { View, Text, TouchableOpacity, ScrollView, Alert, Switch, Platform, Moda
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useAccounts } from '../../src/hooks/useAccounts';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { formatCurrency } from '../../src/utils/formatters';
 import { useState, useEffect } from 'react';
@@ -17,28 +16,15 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { theme, isDarkMode, toggleDarkMode } = useTheme();
   const { user, updateUser, logout } = useAuth();
-  const { getBalance } = useAccounts();
-  const { transactions } = useTransactions(50);
+    const { transactions } = useTransactions(50);
   const [notifications, setNotifications] = useState(true);
   const [guideVisible, setGuideVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [totalBalance, setTotalBalance] = useState(0);
-
-  // Tính tổng số dư từ server (chính xác với mọi giao dịch)
-  useEffect(() => {
-    getBalance()
-      .then(data => {
-        if (data && data.length > 0) {
-          const total = data.reduce((s, a) => s + (a.calculatedBalance || 0), 0);
-          setTotalBalance(total);
-        }
-      })
-      .catch(() => {});
-  }, [getBalance]);
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const totalBalance = totalIncome - totalExpense;
   const initials = (user?.name || 'U').charAt(0).toUpperCase();
 
   const handleLogout = () => {

@@ -10,7 +10,6 @@ const transactionRoutes       = require('../../src/routes/transactions');
 const categoryRoutes          = require('../../src/routes/categories');
 const budgetRoutes            = require('../../src/routes/budgets');
 const aiRoutes                = require('../../src/routes/ai');
-const accountRoutes           = require('../../src/routes/accounts');
 const savingsGoalRoutes       = require('../../src/routes/savingsGoals');
 const recurringRoutes         = require('../../src/routes/recurringTransactions');
 
@@ -23,7 +22,6 @@ app.use('/api/transactions',          transactionRoutes);
 app.use('/api/categories',            categoryRoutes);
 app.use('/api/budgets',               budgetRoutes);
 app.use('/api/ai',                    aiRoutes);
-app.use('/api/accounts',              accountRoutes);
 app.use('/api/savings-goals',         savingsGoalRoutes);
 app.use('/api/recurring-transactions',recurringRoutes);
 

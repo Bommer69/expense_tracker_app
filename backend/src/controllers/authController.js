@@ -4,7 +4,6 @@
 
 const User = require('../models/User');
 const Category = require('../models/Category');
-const Account = require('../models/Account');
 const { generateToken } = require('../utils/auth');
 
 const DEFAULT_CATEGORIES = [
@@ -18,11 +17,6 @@ const DEFAULT_CATEGORIES = [
   { name: 'Lương', icon: '💰', color: '#33FF99', type: 'income', isDefault: true },
   { name: 'Thưởng', icon: '🎁', color: '#9933FF', type: 'income', isDefault: true },
   { name: 'Khoản thu khác', icon: '💵', color: '#66CC33', type: 'income', isDefault: true },
-];
-
-const DEFAULT_ACCOUNTS = [
-  { name: 'Tiền mặt', type: 'cash', balance: 0, isDefault: true },
-  { name: 'Ngân hàng', type: 'bank', balance: 0, isDefault: false },
 ];
 
 // Email validation regex
@@ -72,11 +66,6 @@ async function register(req, res) {
     console.log('[AUTH] Creating default categories...');
     const categories = DEFAULT_CATEGORIES.map(c => ({ ...c, userId: user._id }));
     await Category.insertMany(categories);
-
-    // Create default accounts for user
-    console.log('[AUTH] Creating default accounts...');
-    const accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, userId: user._id }));
-    await Account.insertMany(accounts);
 
     const token = generateToken(user._id);
     console.log('[AUTH] Register successful for user:', user.email);

@@ -73,9 +73,6 @@ async function sendPushToUser(user, notification, options = {}) {
       ...(notification.data?.transactionId && {
         transactionId: String(notification.data.transactionId),
       }),
-      ...(notification.data?.accountId && {
-        accountId: String(notification.data.accountId),
-      }),
       ...(notification.data?.amount != null && {
         amount: notification.data.amount,
       }),

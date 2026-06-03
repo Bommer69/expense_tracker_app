@@ -2,7 +2,6 @@ import { useContext } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
-import { useAccounts } from '../../src/hooks/useAccounts';
 import { useTransactions, useTransactionSummary } from '../../src/hooks/useTransactions';
 import { useState, useCallback } from 'react';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -20,34 +19,23 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { unreadCount } = useContext(NotificationContext);
-  const { getBalance } = useAccounts();
-  const { transactions, loading: tL, fetchTransactions } = useTransactions(5);
+    const { transactions, loading: tL, fetchTransactions } = useTransactions(5);
   const { summary, loading: sL, fetchSummary } = useTransactionSummary();
+  const totalBalance = (summary?.totalIncome || 0) - (summary?.totalExpense || 0);
   const [refreshing, setRefreshing] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
-  const [totalBalance, setTotalBalance] = useState(0);
-
   const loading = tL || sL;
-
-  const refreshBalance = useCallback(async () => {
-    const data = await getBalance().catch(() => null);
-    if (data && data.length > 0) {
-      const total = data.reduce((sum, acc) => sum + (acc.calculatedBalance || 0), 0);
-      setTotalBalance(total);
-    }
-  }, [getBalance]);
 
   useFocusEffect(
     useCallback(() => {
       fetchTransactions();
       fetchSummary();
-      refreshBalance();
-    }, [fetchTransactions, fetchSummary, refreshBalance])
+    }, [fetchTransactions, fetchSummary])
   );
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchTransactions(), fetchSummary(), refreshBalance()]);
+    await Promise.all([fetchTransactions(), fetchSummary()]);
     setRefreshing(false);
   };
 

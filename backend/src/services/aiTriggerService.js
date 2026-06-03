@@ -7,7 +7,6 @@
 
 const mongoose = require('mongoose');
 const Transaction = require('../models/Transaction');
-const Account = require('../models/Account');
 const Budget = require('../models/Budget');
 const Category = require('../models/Category');
 const Notification = require('../models/Notification');
